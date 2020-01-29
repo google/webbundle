@@ -1,9 +1,11 @@
 [package]
 authors = ["Hayato Ito <hayato@google.com>"]
+description = "WebBundle library"
 edition = "2018"
+license = "Apache-2.0"
 name = "webbundle"
+repository = "https://github.com/google/webbundle"
 version = "0.1.0"
-publish = false
 
 [dependencies]
 url = "2.1.1"
