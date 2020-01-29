@@ -7,7 +7,11 @@ An experimental WebBundle library for packaging web sites.
 
 This is not an officially supported Google product.
 
-# The specification
+## Documentation
+
+[https://docs.rs/webbundle](https://docs.rs/webbundle)
+
+## Specification
 
 - [Web Bundles](https://wicg.github.io/webpackage/draft-yasskin-wpack-bundled-exchanges.html)
 
@@ -15,7 +19,7 @@ This is not an officially supported Google product.
 
 See [/docs/contributing.md](docs/contributing.md) for instructions.
 
-# Command line tool
+## Command line tool
 
 This repository also contains a command line tool, called `webbundle`.
 
