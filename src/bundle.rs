@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::builder::Builder;
 use crate::decoder;
 use crate::prelude::*;
 use std::collections::HashMap;
@@ -76,5 +77,9 @@ impl Bundle {
     // We can't use TryFrom, due to https://github.com/rust-lang/rust/issues/50133
     pub fn parse(bytes: impl AsRef<[u8]>) -> Result<Bundle> {
         decoder::parse(bytes)
+    }
+
+    pub fn builder() -> Builder {
+        Builder::new()
     }
 }

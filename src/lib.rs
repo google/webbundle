@@ -40,6 +40,7 @@
 //! - Generate WebBundle from various sources, statically or dynamically
 //!
 
+mod builder;
 pub mod bundle;
 mod decoder;
 mod prelude;
