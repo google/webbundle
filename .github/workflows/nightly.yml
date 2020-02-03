@@ -1,0 +1,19 @@
+name: nightly
+on:
+  schedule:
+    - cron: 0 0 * * *
+jobs:
+  build:
+    strategy:
+      matrix:
+        rust: [stable, beta, nightly]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup update ${{ matrix.rust }}
+      - run: rustup default ${{ matrix.rust }}
+      - run: cargo update
+      - run: cargo build
+      - run: cargo test
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --all-targets --all-features -- --deny warnings
