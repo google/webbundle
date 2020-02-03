@@ -141,7 +141,7 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(Url::parse("https://example.com/")?, base_dir)
+        let exchanges = ExchangeBuilder::new(Url::parse("https://example.com/")?, base_dir.clone())
             .exchange("index.html")?
             .build();
         assert_eq!(exchanges.len(), 1);
@@ -154,11 +154,13 @@ mod tests {
         assert_eq!(exchange.response.headers["content-type"], "text/html");
         assert_eq!(
             exchange.response.headers["content-length"],
-            "<!DOCTYPE html>\nhello\n".len().to_string()
+            std::fs::read(base_dir.join("index.html"))?
+                .len()
+                .to_string()
         );
         assert_eq!(
-            exchange.response.body_as_utf8_lossy_string(),
-            "<!DOCTYPE html>\nhello\n"
+            exchange.response.body,
+            std::fs::read(base_dir.join("index.html"))?
         );
         Ok(())
     }
