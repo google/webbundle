@@ -15,6 +15,7 @@
 use crate::builder::Builder;
 use crate::decoder;
 use crate::prelude::*;
+use std::borrow::Cow;
 use std::collections::HashMap;
 pub use url::Url;
 
@@ -44,14 +45,17 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
+impl Response {
+    pub fn body_as_utf8_lossy_string(&self) -> Cow<'_, str> {
+        String::from_utf8_lossy(&self.body[..])
+    }
+}
+
 impl std::fmt::Debug for Response {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Response")
             .field("headers", &self.headers)
-            .field(
-                "body_as_utf8_lossy",
-                &String::from_utf8_lossy(&self.body[..]),
-            )
+            .field("body_as_utf8_lossy", &self.body_as_utf8_lossy_string())
             .finish()
     }
 }
