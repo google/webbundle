@@ -14,7 +14,9 @@
 
 use crate::bundle::{Bundle, Exchange, Headers, Request, Response, Url, Version};
 use crate::prelude::*;
+use log::warn;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
 
 #[derive(Default)]
 pub struct Builder {
@@ -58,10 +60,10 @@ pub struct ExchangeBuilder {
 
 #[allow(dead_code)]
 impl ExchangeBuilder {
-    fn new(base_url: Url, base_dir: PathBuf) -> Self {
+    fn new(base_dir: PathBuf, base_url: Url) -> Self {
         ExchangeBuilder {
-            base_url,
             base_dir,
+            base_url,
             exchanges: Vec::new(),
         }
     }
@@ -108,6 +110,25 @@ impl ExchangeBuilder {
         Ok(Response { headers, body })
     }
 
+    fn walk(mut self) -> Result<Self> {
+        for entry in WalkDir::new(&self.base_dir) {
+            let entry = entry?;
+            let file_type = entry.file_type();
+            if file_type.is_symlink() {
+                warn!(
+                    "path is symbolink link. Skipping. {}",
+                    entry.path().display()
+                );
+                continue;
+            }
+            if file_type.is_file() {
+                let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
+                self = self.exchange(relative_path)?;
+            }
+        }
+        Ok(self)
+    }
+
     fn build(self) -> Vec<Exchange> {
         self.exchanges
     }
@@ -116,6 +137,7 @@ impl ExchangeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     #[test]
     fn build_fail() {
@@ -141,7 +163,7 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(Url::parse("https://example.com/")?, base_dir.clone())
+        let exchanges = ExchangeBuilder::new(base_dir.clone(), Url::parse("https://example.com/")?)
             .exchange("index.html")?
             .build();
         assert_eq!(exchanges.len(), 1);
@@ -162,6 +184,27 @@ mod tests {
             exchange.response.body,
             std::fs::read(base_dir.join("index.html"))?
         );
+        Ok(())
+    }
+
+    #[test]
+    fn walk() -> Result<()> {
+        let base_dir = {
+            let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            path.push("tests/builder");
+            path
+        };
+
+        let exchanges = ExchangeBuilder::new(base_dir, Url::parse("https://example.com/")?)
+            .walk()?
+            .build();
+        assert_eq!(exchanges.len(), 2);
+        let urls = exchanges
+            .into_iter()
+            .map(|e| e.request.url)
+            .collect::<HashSet<_>>();
+        assert!(urls.contains(&Url::parse("https://example.com/index.html")?));
+        assert!(urls.contains(&Url::parse("https://example.com/js/hello.js")?));
         Ok(())
     }
 }
