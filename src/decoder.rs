@@ -367,40 +367,52 @@ impl<T: AsRef<[u8]>> Decoder<T> {
         );
         let headers = self.de.bytes()?;
         let mut nested = Decoder::new(headers);
-        let headers = nested.read_headers_cbor()?;
+        let (status, headers) = nested.read_headers_cbor()?;
         let body = self.de.bytes()?;
-        Ok(Response { headers, body })
+        Ok(Response {
+            status,
+            headers,
+            body,
+        })
     }
 
-    fn read_headers_cbor(&mut self) -> Result<Headers> {
+    fn read_headers_cbor(&mut self) -> Result<(u32, Headers)> {
         let headers_map_len = match self.de.map()? {
             Len::Len(n) => n,
             Len::Indefinite => {
                 bail!("bundle: Failed to decode responses headers map headder");
             }
         };
-        (0..headers_map_len)
-            .map(|_| {
-                let name = String::from_utf8(self.de.bytes()?)?;
-                let value = String::from_utf8(self.de.bytes()?)?;
-                ensure!(
-                    !name.chars().any(|c| c.is_uppercase()),
-                    format!(
-                        "Failed to decode response headers: name contains upper-case: {}",
-                        name
-                    )
-                );
-                ensure!(
-                    name.is_ascii(),
-                    format!(
-                        "Failed to decode response headers: name contains non-ASCII: {}",
-                        name
-                    )
-                );
-                // TODO: Support pseudo values, such as :status
-                Ok((name, value))
-            })
-            .collect()
+        let mut headers = Headers::new();
+        let mut status = None;
+        for _ in 0..headers_map_len {
+            let name = String::from_utf8(self.de.bytes()?)?;
+            let value = String::from_utf8(self.de.bytes()?)?;
+            if name.starts_with(':') {
+                ensure!(name == ":status", "Unknown pseudo headers");
+                ensure!(status.is_none(), ":status is duplicated");
+                // TODO: Assert status is exactly 3 ASCII decimal digits.
+                status = Some(value.parse()?);
+                continue;
+            }
+            ensure!(
+                !name.chars().any(|c| c.is_uppercase()),
+                format!(
+                    "Failed to decode response headers: name contains upper-case: {}",
+                    name
+                )
+            );
+            ensure!(
+                name.is_ascii(),
+                format!(
+                    "Failed to decode response headers: name contains non-ASCII: {}",
+                    name
+                )
+            );
+            headers.insert(name, value);
+        }
+        ensure!(status.is_some(), "no :status header");
+        Ok((status.unwrap(), headers))
     }
 }
 

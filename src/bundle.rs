@@ -39,8 +39,7 @@ pub type Headers = HashMap<String, String>;
 
 /// Represents an HTTP response.
 pub struct Response {
-    // TODO: Support status
-    // pub status: u32;
+    pub status: u32,
     pub headers: Headers,
     pub body: Vec<u8>,
 }

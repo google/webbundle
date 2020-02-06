@@ -102,12 +102,12 @@ impl ExchangeBuilder {
         let mut headers = Headers::new();
         headers.insert("content-type".to_string(), mime);
         headers.insert("content-length".to_string(), body.len().to_string());
-        // TODO: Don't use status pseudo header.
-        headers.insert(":status".to_string(), 200.to_string());
-
         // TODO: Add date to headers?
-
-        Ok(Response { headers, body })
+        Ok(Response {
+            status: 200,
+            headers,
+            body,
+        })
     }
 
     fn walk(mut self) -> Result<Self> {
@@ -173,6 +173,7 @@ mod tests {
             Url::parse("https://example.com/index.html")?
         );
         assert!(exchange.request.variant_key.is_none());
+        assert_eq!(exchange.response.status, 200);
         assert_eq!(exchange.response.headers["content-type"], "text/html");
         assert_eq!(
             exchange.response.headers["content-length"],
