@@ -19,6 +19,23 @@ This is not an officially supported Google product.
 
 See [/docs/contributing.md](docs/contributing.md) for instructions.
 
+## TODO
+
+The development is at very early stage. There are many TODO items:
+
+- [x] Parser
+- [x] WebBundle Builder
+  - [x] Create a WebBundle from a directory structure
+  - [x] Low-level APIs to create and manipulate WebBundle file
+- [x] Use `http::Request`, `http::Response` and `http::Uri` for better engonomics
+- [ ] Support Signatures
+- [ ] Support Variants
+- [ ] Use async/await to avoid blocking operations
+- [ ] More CLI subcommands
+  - [x] `create`
+  - [ ] `list`
+  - [ ] `extract`
+
 ## Command line tool
 
 This repository also contains a command line tool, called `webbundle`.

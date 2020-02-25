@@ -18,31 +18,40 @@
 //!
 //! # Example
 //!
-//! ## Parsing
+//! ## WebBundle Parsing
 //!
-//! ```should_panic
-//! use webbundle::{Bundle, Result};
+//! ```no_run
+//! use webbundle::Bundle;
 //! use std::io::{Read as _};
 //!
-//! fn main() -> Result<()> {
-//!     let mut bytes = Vec::new();
-//!     std::fs::File::open("your_bundle.wbn")?.read_to_end(&mut bytes)?;
-//!     let bundle = Bundle::parse(bytes)?;
-//!     println!("parsed bundle: {:#?}", bundle);
-//!     Ok(())
-//! }
+//! let mut bytes = Vec::new();
+//! std::fs::File::open("example.wbn")?.read_to_end(&mut bytes)?;
+//! let bundle = Bundle::from_bytes(bytes)?;
+//! println!("Parsed bundle: {:#?}", bundle);
+//! # Result::Ok::<(), anyhow::Error>(())
 //! ```
 //!
-//! # Future plans:
+//! ## Creating a bundle from files
 //!
-//! - Support Variants
-//! - Support Signatures
-//! - Generate WebBundle from various sources, statically or dynamically
+//! ```no_run
+//! use webbundle::{Bundle, Version};
 //!
+//! let bundle = Bundle::builder()
+//!     .version(Version::VersionB1)
+//!     .primary_url("https://example.com/index.html".parse()?)
+//!     .exchanges_from_dir("assets", "https://example.com".parse()?)?
+//!     .build()?;
+//! println!("Created bundle: {:#?}", bundle);
+//! let write = std::io::BufWriter::new(std::fs::File::create("example.wbn")?);
+//! bundle.write_to(write)?;
+//! # Result::Ok::<(), anyhow::Error>(())
+//! ```
 
 mod builder;
-pub mod bundle;
+mod bundle;
 mod decoder;
+mod encoder;
 mod prelude;
-pub use bundle::Bundle;
+pub use builder::Builder;
+pub use bundle::{Body, Bundle, Exchange, Request, Response, Uri, Version};
 pub use prelude::Result;

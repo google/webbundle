@@ -12,35 +12,78 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bundle::{Bundle, Exchange, Headers, Request, Response, Url, Version};
+use crate::bundle::{Bundle, Exchange, Request, Response, Uri, Version};
 use crate::prelude::*;
-use log::warn;
+use headers::{ContentLength, ContentType, HeaderMapExt as _};
+use http::StatusCode;
 use std::path::{Path, PathBuf};
+use url::Url;
 use walkdir::WalkDir;
 
 #[derive(Default)]
 pub struct Builder {
     version: Option<Version>,
-    primary_url: Option<Url>,
-    manifest: Option<Url>,
+    primary_url: Option<Uri>,
+    manifest: Option<Uri>,
     exchanges: Vec<Exchange>,
 }
 
 impl Builder {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Default::default()
     }
 
+    /// Sets the version.
     pub fn version(mut self, version: Version) -> Self {
         self.version = Some(version);
         self
     }
 
-    pub fn primary_url(mut self, primary_url: Url) -> Self {
+    /// Sets the primary url.
+    pub fn primary_url(mut self, primary_url: Uri) -> Self {
         self.primary_url = Some(primary_url);
         self
     }
 
+    /// Sets the manifest url.
+    pub fn manifest(mut self, manifest: Uri) -> Self {
+        self.manifest = Some(manifest);
+        self
+    }
+
+    /// Adds the exchange.
+    pub fn exchange(mut self, exchange: Exchange) -> Self {
+        self.exchanges.push(exchange);
+        self
+    }
+
+    /// Append exchanges from the files under the given directory.
+    ///
+    /// `base_url` will be used as a prefix for each
+    /// resource. A relative path from the given directory to each
+    /// file is appended to `base_url`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # use webbundle::{Bundle, Version};
+    /// let bundle = Bundle::builder()
+    ///        .version(Version::VersionB1)
+    ///        .primary_url("https://example.com/index.html".parse()?)
+    ///        .exchanges_from_dir("assets", "https://example.com".parse()?)?
+    ///        .build()?;
+    /// # Result::Ok::<(), anyhow::Error>(())
+    /// ```
+    pub fn exchanges_from_dir(mut self, dir: impl AsRef<Path>, base_url: Url) -> Result<Self> {
+        self.exchanges.append(
+            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()), base_url)
+                .walk()?
+                .build(),
+        );
+        Ok(self)
+    }
+
+    /// Builds the bundle.
     pub fn build(self) -> Result<Bundle> {
         Ok(Bundle {
             version: self.version.context("no version")?,
@@ -52,7 +95,7 @@ impl Builder {
 }
 
 #[allow(dead_code)]
-pub struct ExchangeBuilder {
+struct ExchangeBuilder {
     base_url: Url,
     base_dir: PathBuf,
     exchanges: Vec<Exchange>,
@@ -68,54 +111,12 @@ impl ExchangeBuilder {
         }
     }
 
-    fn url_from_relative_path(&self, relative_path: &Path) -> Result<Url> {
-        ensure!(
-            relative_path.is_relative(),
-            format!("Path is not relative: {}", relative_path.display())
-        );
-        Ok(self.base_url.join(&relative_path.display().to_string())?)
-    }
-
-    fn exchange(mut self, relative_path: impl AsRef<Path>) -> Result<Self> {
-        self.exchanges.push(Exchange {
-            request: Request {
-                url: self.url_from_relative_path(relative_path.as_ref())?,
-                variant_key: None,
-            },
-            response: self.create_response(relative_path)?,
-        });
-        Ok(self)
-    }
-
-    fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
-        ensure!(
-            relative_path.as_ref().is_relative(),
-            format!("Path is not relative: {}", relative_path.as_ref().display())
-        );
-        let path = self.base_dir.join(relative_path);
-        let mime = mime_guess::from_path(path.clone()).first_or_octet_stream();
-        let mime = format!("{}/{}", mime.type_(), mime.subtype());
-
-        // TODO: We should have a async version
-        let body = std::fs::read(path)?;
-
-        let mut headers = Headers::new();
-        headers.insert("content-type".to_string(), mime);
-        headers.insert("content-length".to_string(), body.len().to_string());
-        // TODO: Add date to headers?
-        Ok(Response {
-            status: 200,
-            headers,
-            body,
-        })
-    }
-
     fn walk(mut self) -> Result<Self> {
         for entry in WalkDir::new(&self.base_dir) {
             let entry = entry?;
             let file_type = entry.file_type();
             if file_type.is_symlink() {
-                warn!(
+                log::warn!(
                     "path is symbolink link. Skipping. {}",
                     entry.path().display()
                 );
@@ -131,6 +132,44 @@ impl ExchangeBuilder {
 
     fn build(self) -> Vec<Exchange> {
         self.exchanges
+    }
+
+    fn url_from_relative_path(&self, relative_path: &Path) -> Result<Uri> {
+        ensure!(
+            relative_path.is_relative(),
+            format!("Path is not relative: {}", relative_path.display())
+        );
+        Ok(self
+            .base_url
+            .join(&relative_path.display().to_string())?
+            .to_string()
+            .parse()?)
+    }
+
+    fn exchange(mut self, relative_path: impl AsRef<Path>) -> Result<Self> {
+        self.exchanges.push(Exchange {
+            request: Request::get(self.url_from_relative_path(relative_path.as_ref())?).body(())?,
+            response: self.create_response(relative_path)?,
+        });
+        Ok(self)
+    }
+
+    fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
+        ensure!(
+            relative_path.as_ref().is_relative(),
+            format!("Path is not relative: {}", relative_path.as_ref().display())
+        );
+        let path = self.base_dir.join(relative_path);
+        let body = std::fs::read(&path)?;
+
+        let content_length = ContentLength(body.len() as u64);
+        let content_type = ContentType::from(mime_guess::from_path(&path).first_or_octet_stream());
+
+        let mut response = Response::new(body);
+        *response.status_mut() = StatusCode::OK;
+        response.headers_mut().typed_insert(content_length);
+        response.headers_mut().typed_insert(content_type);
+        Ok(response)
     }
 }
 
@@ -148,10 +187,10 @@ mod tests {
     fn build() -> Result<()> {
         let bundle = Builder::new()
             .version(Version::Version1)
-            .primary_url(Url::parse("https://example.com")?)
+            .primary_url("https://example.com".parse()?)
             .build()?;
         assert_eq!(bundle.version, Version::Version1);
-        assert_eq!(bundle.primary_url, Url::parse("https://example.com")?);
+        assert_eq!(bundle.primary_url, "https://example.com".parse::<Uri>()?);
         Ok(())
     }
 
@@ -163,27 +202,26 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(base_dir.clone(), Url::parse("https://example.com/")?)
+        let exchanges = ExchangeBuilder::new(base_dir.clone(), "https://example.com/".parse()?)
             .exchange("index.html")?
             .build();
         assert_eq!(exchanges.len(), 1);
         let exchange = &exchanges[0];
         assert_eq!(
-            exchange.request.url,
-            Url::parse("https://example.com/index.html")?
+            exchange.request.uri(),
+            &"https://example.com/index.html".parse::<Uri>()?
         );
-        assert!(exchange.request.variant_key.is_none());
-        assert_eq!(exchange.response.status, 200);
-        assert_eq!(exchange.response.headers["content-type"], "text/html");
+        assert_eq!(exchange.response.status(), StatusCode::OK);
+        assert_eq!(exchange.response.headers()["content-type"], "text/html");
         assert_eq!(
-            exchange.response.headers["content-length"],
+            exchange.response.headers()["content-length"],
             std::fs::read(base_dir.join("index.html"))?
                 .len()
                 .to_string()
         );
         assert_eq!(
-            exchange.response.body,
-            std::fs::read(base_dir.join("index.html"))?
+            exchange.response.body(),
+            &std::fs::read(base_dir.join("index.html"))?
         );
         Ok(())
     }
@@ -196,16 +234,16 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(base_dir, Url::parse("https://example.com/")?)
+        let exchanges = ExchangeBuilder::new(base_dir, "https://example.com/".parse()?)
             .walk()?
             .build();
         assert_eq!(exchanges.len(), 2);
         let urls = exchanges
             .into_iter()
-            .map(|e| e.request.url)
+            .map(|e| e.request.uri().clone())
             .collect::<HashSet<_>>();
-        assert!(urls.contains(&Url::parse("https://example.com/index.html")?));
-        assert!(urls.contains(&Url::parse("https://example.com/js/hello.js")?));
+        assert!(urls.contains(&"https://example.com/index.html".parse::<Uri>()?));
+        assert!(urls.contains(&"https://example.com/js/hello.js".parse::<Uri>()?));
         Ok(())
     }
 }
