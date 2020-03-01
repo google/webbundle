@@ -46,6 +46,19 @@
 //! bundle.write_to(write)?;
 //! # Result::Ok::<(), anyhow::Error>(())
 //! ```
+//! 
+//! ## 'webbundle' command line tool
+//! 
+//! ### create
+//! ```no_run
+//! $ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
+//! ```
+//! 
+//! ### dump
+//! ```no_run
+//! $ webbundle dump ./example.wbn
+//! ```
+//! 
 
 mod builder;
 mod bundle;
