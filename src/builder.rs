@@ -240,10 +240,10 @@ mod tests {
         assert_eq!(exchanges.len(), 2);
         let urls = exchanges
             .into_iter()
-            .map(|e| e.request.uri().clone())
+            .map(|e| e.request.uri().to_string())
             .collect::<HashSet<_>>();
-        assert!(urls.contains(&"https://example.com/index.html".parse::<Uri>()?));
-        assert!(urls.contains(&"https://example.com/js/hello.js".parse::<Uri>()?));
+        assert!(urls.contains("https://example.com/index.html"));
+        assert!(urls.contains("https://example.com/js/hello.js"));
         Ok(())
     }
 }
