@@ -43,6 +43,9 @@ enum Command {
     /// Example: webbundle dump ./example.wbn
     #[structopt(name = "dump")]
     Dump { file: String },
+    /// List the contents briefly
+    #[structopt(name = "list")]
+    List { file: String },
 }
 
 fn env_logger_init() {
@@ -60,6 +63,24 @@ fn env_logger_init() {
             )
         })
         .init();
+}
+
+fn list(bundle: &webbundle::Bundle) {
+    println!("primary-url: {}", bundle.primary_url());
+    if let Some(manifest) = bundle.manifest() {
+        println!("manifest: {}", manifest);
+    }
+    for exchange in bundle.exchanges() {
+        let request = &exchange.request;
+        let response = &exchange.response;
+        println!(
+            "{} {} {} bytes",
+            request.uri(),
+            response.status(),
+            response.body().len()
+        );
+        log::debug!("headers: {:?}", response.headers());
+    }
 }
 
 fn main() -> Result<()> {
@@ -84,6 +105,12 @@ fn main() -> Result<()> {
             log::debug!("{:#?}", bundle);
             let write = std::io::BufWriter::new(std::fs::File::create(&file)?);
             bundle.write_to(write)?;
+        }
+        Command::List { file } => {
+            let mut buf = Vec::new();
+            std::fs::File::open(&file)?.read_to_end(&mut buf)?;
+            let bundle = webbundle::Bundle::from_bytes(buf)?;
+            list(&bundle);
         }
         Command::Dump { file } => {
             let mut buf = Vec::new();

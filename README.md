@@ -33,7 +33,7 @@ The development is at very early stage. There are many TODO items:
 - [ ] Use async/await to avoid blocking operations
 - [ ] More CLI subcommands
   - [x] `create`
-  - [ ] `list`
+  - [x] `list`
   - [ ] `extract`
 
 ## Command line tool
