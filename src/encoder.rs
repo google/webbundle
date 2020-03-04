@@ -72,7 +72,6 @@ impl<W: Write> Count for Serializer<CountWrite<W>> {
 impl<W: Write> Encoder<W> {
     fn new(write: W) -> Self {
         Encoder {
-            // se: Serializer::new(CountWrite::new(write)),
             se: Serializer::new(write),
         }
     }
@@ -154,10 +153,9 @@ fn encode_sections(bundle: &Bundle) -> Result<Vec<Section>> {
 }
 
 fn encode_manifest_section(url: &Uri) -> Result<Vec<u8>> {
-    let mut write = Vec::new();
-    let mut se = Serializer::new(&mut write);
+    let mut se = Serializer::new_vec();
     se.write_text(url.to_string())?;
-    Ok(write)
+    Ok(se.finalize())
 }
 
 struct ResponseLocation {
@@ -167,8 +165,7 @@ struct ResponseLocation {
 }
 
 fn encode_response_section(exchanges: &[Exchange]) -> Result<(Vec<u8>, Vec<ResponseLocation>)> {
-    let mut bytes = Vec::new();
-    let mut se = Serializer::new(CountWrite::new(&mut bytes));
+    let mut se = Serializer::new(CountWrite::new(Vec::new()));
 
     se.write_array(Len::Len(exchanges.len() as u64))?;
 
@@ -188,7 +185,7 @@ fn encode_response_section(exchanges: &[Exchange]) -> Result<(Vec<u8>, Vec<Respo
         });
     }
 
-    Ok((bytes, response_locations))
+    Ok((se.finalize().inner, response_locations))
 }
 
 fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u8>> {
@@ -197,10 +194,10 @@ fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u
     let mut map = std::collections::BTreeMap::<Vec<u8>, Vec<u8>>::new();
 
     for response_location in response_locations {
-        let mut key = Serializer::new(Vec::new());
+        let mut key = Serializer::new_vec();
         key.write_text(response_location.uri.to_string())?;
 
-        let mut value = Serializer::new(Vec::new());
+        let mut value = Serializer::new_vec();
         value.write_array(Len::Len(3))?;
         // TODO: Support variants.
         value.write_bytes(b"")?;
@@ -210,7 +207,7 @@ fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u
         map.insert(key.finalize(), value.finalize());
     }
 
-    let mut se = Serializer::new(Vec::new());
+    let mut se = Serializer::new_vec();
     se.write_map(Len::Len(response_locations.len() as u64))?;
     for (key, value) in map {
         se.write_raw_bytes(&key)?;
@@ -220,15 +217,14 @@ fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u
 }
 
 fn encode_section_lengths(sections: &[Section]) -> Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    let mut se = Serializer::new(&mut bytes);
+    let mut se = Serializer::new_vec();
 
     se.write_array(Len::Len((sections.len() * 2) as u64))?;
     for section in sections {
         se.write_text(section.name)?;
         se.write_unsigned_integer(section.bytes.len() as u64)?;
     }
-    Ok(bytes)
+    Ok(se.finalize())
 }
 
 fn encode_headers(response: &Response) -> Result<Vec<u8>> {
@@ -237,22 +233,22 @@ fn encode_headers(response: &Response) -> Result<Vec<u8>> {
     let mut map = std::collections::BTreeMap::<Vec<u8>, Vec<u8>>::new();
 
     // Write status
-    let mut key = Serializer::new(Vec::new());
+    let mut key = Serializer::new_vec();
     key.write_bytes(b":status")?;
-    let mut value = Serializer::new(Vec::new());
+    let mut value = Serializer::new_vec();
     value.write_bytes(response.status().as_u16().to_string().as_bytes())?;
     map.insert(key.finalize(), value.finalize());
 
     // Write headers
     for (header_name, header_value) in response.headers() {
-        let mut key = Serializer::new(Vec::new());
+        let mut key = Serializer::new_vec();
         key.write_bytes(header_name.as_str().as_bytes())?;
-        let mut value = Serializer::new(Vec::new());
+        let mut value = Serializer::new_vec();
         value.write_bytes(header_value.to_str()?.as_bytes())?;
         map.insert(key.finalize(), value.finalize());
     }
 
-    let mut se = Serializer::new(Vec::new());
+    let mut se = Serializer::new_vec();
     se.write_map(Len::Len(map.len() as u64))?;
     for (key, value) in map {
         se.write_raw_bytes(&key)?;
