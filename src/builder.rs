@@ -14,12 +14,13 @@
 
 use crate::bundle::{Bundle, Exchange, Request, Response, Uri, Version};
 use crate::prelude::*;
-use headers::{ContentLength, ContentType, HeaderMapExt as _};
+use headers::{ContentLength, ContentType, HeaderMapExt as _, HeaderValue};
 use http::StatusCode;
 use std::path::{Path, PathBuf};
 use url::Url;
 use walkdir::WalkDir;
 
+/// A Bundle builder.
 #[derive(Default)]
 pub struct Builder {
     version: Option<Version>,
@@ -57,21 +58,27 @@ impl Builder {
         self
     }
 
-    /// Append exchanges from the files under the given directory.
+    /// Append exchanges from files rooted at the given directory.
     ///
-    /// `base_url` will be used as a prefix for each
-    /// resource. A relative path from the given directory to each
-    /// file is appended to `base_url`.
+    /// `base_url` will be used as a prefix for each resource. A relative path
+    /// from the given directory to each file is appended to `base_url`.
+    ///
+    /// One exchange is created for each file, however, two exchanges
+    /// are created for `index.html` file, as follows:
+    ///
+    /// 1. The pareent directory **serves** the contents of `index.html` file.
+    /// 2. The URL for `index.html` file is a redirect to the parent directory
+    ///    (`301` MOVED PERMANENTLY).
     ///
     /// # Examples
     ///
     /// ```no_run
     /// # use webbundle::{Bundle, Version};
     /// let bundle = Bundle::builder()
-    ///        .version(Version::VersionB1)
-    ///        .primary_url("https://example.com/index.html".parse()?)
-    ///        .exchanges_from_dir("assets", "https://example.com".parse()?)?
-    ///        .build()?;
+    ///     .version(Version::VersionB1)
+    ///     .primary_url("https://example.com/".parse()?)
+    ///     .exchanges_from_dir("build", "https://example.com".parse()?)?
+    ///     .build()?;
     /// # Result::Ok::<(), anyhow::Error>(())
     /// ```
     pub fn exchanges_from_dir(mut self, dir: impl AsRef<Path>, base_url: Url) -> Result<Self> {
@@ -114,6 +121,7 @@ impl ExchangeBuilder {
     fn walk(mut self) -> Result<Self> {
         for entry in WalkDir::new(&self.base_dir) {
             let entry = entry?;
+            log::info!("visit: {:?}", entry);
             let file_type = entry.file_type();
             if file_type.is_symlink() {
                 log::warn!(
@@ -122,9 +130,22 @@ impl ExchangeBuilder {
                 );
                 continue;
             }
-            if file_type.is_file() {
+            if !file_type.is_file() {
+                continue;
+            }
+            if entry.path().file_name().unwrap() == "index.html" {
+                let dir = entry.path().parent().unwrap();
+
+                let relative_url = pathdiff::diff_paths(dir, &self.base_dir).unwrap();
                 let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
-                self = self.exchange(relative_path)?;
+                // for <dir> -> Serves the contents of <dir>/index.html
+                self = self.exchange(&relative_url, &relative_path)?;
+
+                // for <dir>/index.html -> redirect to "./"
+                self = self.exchange_redirect(&relative_path, "./")?;
+            } else {
+                let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
+                self = self.exchange(&relative_path, &relative_path)?;
             }
         }
         Ok(self)
@@ -146,12 +167,37 @@ impl ExchangeBuilder {
             .parse()?)
     }
 
-    fn exchange(mut self, relative_path: impl AsRef<Path>) -> Result<Self> {
+    fn url_join(&self, relative_url: &str) -> Result<Uri> {
+        Ok(self.base_url.join(relative_url)?.to_string().parse()?)
+    }
+
+    fn exchange(
+        mut self,
+        relative_url: impl AsRef<Path>,
+        relative_path: impl AsRef<Path>,
+    ) -> Result<Self> {
         self.exchanges.push(Exchange {
-            request: Request::get(self.url_from_relative_path(relative_path.as_ref())?).body(())?,
+            request: Request::get(self.url_from_relative_path(relative_url.as_ref())?).body(())?,
             response: self.create_response(relative_path)?,
         });
         Ok(self)
+    }
+
+    fn exchange_redirect(mut self, relative_url: &Path, location: &str) -> Result<Self> {
+        self.exchanges.push(Exchange {
+            request: Request::get(self.url_from_relative_path(relative_url)?).body(())?,
+            response: Self::create_redirect(location)?,
+        });
+        Ok(self)
+    }
+
+    fn create_redirect(location: &str) -> Result<Response> {
+        let mut response = Response::new(Vec::new());
+        *response.status_mut() = StatusCode::MOVED_PERMANENTLY;
+        response
+            .headers_mut()
+            .insert("Location", HeaderValue::from_str(location)?);
+        Ok(response)
     }
 
     fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
@@ -203,13 +249,13 @@ mod tests {
         };
 
         let exchanges = ExchangeBuilder::new(base_dir.clone(), "https://example.com/".parse()?)
-            .exchange("index.html")?
+            .exchange(".", "index.html")?
             .build();
         assert_eq!(exchanges.len(), 1);
         let exchange = &exchanges[0];
         assert_eq!(
             exchange.request.uri(),
-            &"https://example.com/index.html".parse::<Uri>()?
+            &"https://example.com/".parse::<Uri>()?
         );
         assert_eq!(exchange.response.status(), StatusCode::OK);
         assert_eq!(exchange.response.headers()["content-type"], "text/html");
@@ -237,11 +283,12 @@ mod tests {
         let exchanges = ExchangeBuilder::new(base_dir, "https://example.com/".parse()?)
             .walk()?
             .build();
-        assert_eq!(exchanges.len(), 2);
+        assert_eq!(exchanges.len(), 3);
         let urls = exchanges
             .into_iter()
             .map(|e| e.request.uri().to_string())
             .collect::<HashSet<_>>();
+        assert!(urls.contains("https://example.com/"));
         assert!(urls.contains("https://example.com/index.html"));
         assert!(urls.contains("https://example.com/js/hello.js"));
         Ok(())
