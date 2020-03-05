@@ -40,4 +40,10 @@ The development is at very early stage. There are many TODO items:
 
 This repository also contains a command line tool, called `webbundle`.
 
+To install `webbundle` command, run the following:
+
+```shell
+cargo install --features=cli webbundle
+```
+
 See `webbundle --help` for the usage.
