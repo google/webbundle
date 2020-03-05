@@ -17,7 +17,7 @@ This is not an officially supported Google product.
 
 ## Contributing
 
-See [/docs/contributing.md](docs/contributing.md) for instructions.
+See [contributing.md](contributing.md) for instructions.
 
 ## TODO
 
@@ -34,12 +34,17 @@ The development is at very early stage. There are many TODO items:
 - [ ] More CLI subcommands
   - [x] `create`
   - [x] `dump`
-  - [ ] `list`
+  - [x] `list`
   - [ ] `extract`
 
 ## Command line tool
 
 This repository also contains a command line tool, called `webbundle`.
+To install `webbundle` command, run the following:
+
+```shell
+cargo install --features=cli webbundle
+```
 
 ### create
 ```no_run
@@ -51,4 +56,4 @@ $ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.h
 $ webbundle dump ./example.wbn
 ```
 
-See `webbundle --help` for more detail.
+See `webbundle --help` for detail usage.
