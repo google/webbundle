@@ -47,12 +47,12 @@ cargo install --features=cli webbundle
 ```
 
 ### create
-```no_run
+```
 $ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
 ```
 
 ### dump
-```no_run
+```
 $ webbundle dump ./example.wbn
 ```
 
