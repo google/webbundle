@@ -33,17 +33,27 @@ The development is at very early stage. There are many TODO items:
 - [ ] Use async/await to avoid blocking operations
 - [ ] More CLI subcommands
   - [x] `create`
+  - [x] `dump`
   - [x] `list`
   - [ ] `extract`
 
 ## Command line tool
 
 This repository also contains a command line tool, called `webbundle`.
-
 To install `webbundle` command, run the following:
 
 ```shell
 cargo install --features=cli webbundle
 ```
 
-See `webbundle --help` for the usage.
+### create
+```
+$ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
+```
+
+### dump
+```
+$ webbundle dump ./example.wbn
+```
+
+See `webbundle --help` for detail usage.
