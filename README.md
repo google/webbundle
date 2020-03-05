@@ -33,6 +33,7 @@ The development is at very early stage. There are many TODO items:
 - [ ] Use async/await to avoid blocking operations
 - [ ] More CLI subcommands
   - [x] `create`
+  - [x] `dump`
   - [ ] `list`
   - [ ] `extract`
 
@@ -40,4 +41,14 @@ The development is at very early stage. There are many TODO items:
 
 This repository also contains a command line tool, called `webbundle`.
 
-See `webbundle --help` for the usage.
+### create
+```no_run
+$ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
+```
+
+### dump
+```no_run
+$ webbundle dump ./example.wbn
+```
+
+See `webbundle --help` for more detail.
