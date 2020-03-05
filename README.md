@@ -17,7 +17,7 @@ This is not an officially supported Google product.
 
 ## Contributing
 
-See [/docs/contributing.md](docs/contributing.md) for instructions.
+See [contributing.md](contributing.md) for instructions.
 
 ## TODO
 
