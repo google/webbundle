@@ -33,13 +33,15 @@ The development is at very early stage. There are many TODO items:
 - [ ] Use async/await to avoid blocking operations
 - [ ] More CLI subcommands
   - [x] `create`
-  - [x] `dump`
+  - [x] `dump` (deprecated)
   - [x] `list`
-  - [ ] `extract`
+  - [x] `extract`
+  - [ ] Make these subcommands more ergonomics
 
 ## Command line tool
 
 This repository also contains a command line tool, called `webbundle`.
+
 To install `webbundle` command, run the following:
 
 ```shell
@@ -47,13 +49,30 @@ cargo install --features=cli webbundle
 ```
 
 ### create
+
+Create `example.wbn` from the files under `build/dist` directory.
+This is similar to `tar cvf example.tar build/dist`.
+
 ```
-$ webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
+$ webbundle create --base-url "https://example.com/" --primary-url "https://example.com/foo/" example.wbn build/dist
 ```
 
-### dump
+### list
+
+List the contents of `example.wbn`.
+This is similar to `tar tvf example.tar`.
+
 ```
-$ webbundle dump ./example.wbn
+$ webbundle list ./example.wbn
+```
+
+### extract
+
+Extract the contents of `example.wbn`.
+This is similar to `tar xvf example.tar`.
+
+```
+$ webbundle extract ./example.wbn
 ```
 
 See `webbundle --help` for detail usage.
