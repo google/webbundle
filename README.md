@@ -42,11 +42,18 @@ The development is at very early stage. There are many TODO items:
 
 This repository also contains a command line tool, called `webbundle`.
 
-To install `webbundle` command, run the following:
+### Instalation
+
+[Archives of precompiled binaries for `webbundle` are available for
+Windows, macOS and Linux](https://github.com/google/webbundle/releases).
+
+If you're a Rust programmer, `webbundle` can be installed with `cargo`.
 
 ```shell
 cargo install --features=cli webbundle
 ```
+
+## Examples
 
 ### create
 
