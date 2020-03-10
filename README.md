@@ -37,6 +37,12 @@ The development is at very early stage. There are many TODO items:
   - [x] `list`
   - [x] `extract`
   - [ ] Make these subcommands more ergonomics
+- [ ] Focus the performance. Avoid copy as much as possible.
+- [ ] Split this crate into several crates:
+  - [ ] `webbundle`: Core library
+  - [ ] `webbundle-cli`: CLI, like a `tar` command
+  - [ ] `webbundle-ffi`: Foreign function interface for C or C++ program, like a chromium
+  - [ ] `webbundle-server`: Experimental http server which can assemble and serve a webbundle dynamically, based on request parameters
 
 ## Command line tool
 
