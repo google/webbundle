@@ -222,11 +222,15 @@ impl ExchangeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     #[test]
-    fn build_fail() {
+    fn build_invalid_bundle() -> Result<()> {
         assert!(Builder::new().build().is_err());
+        assert!(Builder::new()
+            .primary_url("https://example.com/".parse()?)
+            .build()
+            .is_err());
+        Ok(())
     }
 
     #[test]
@@ -284,13 +288,23 @@ mod tests {
             .walk()?
             .build();
         assert_eq!(exchanges.len(), 3);
-        let urls = exchanges
-            .into_iter()
-            .map(|e| e.request.uri().to_string())
-            .collect::<HashSet<_>>();
-        assert!(urls.contains("https://example.com/"));
-        assert!(urls.contains("https://example.com/index.html"));
-        assert!(urls.contains("https://example.com/js/hello.js"));
+
+        let top_dir = find_exchange_by_uri(&exchanges, "https://example.com/")?;
+        assert_eq!(top_dir.response.status(), StatusCode::OK);
+
+        let index_html = find_exchange_by_uri(&exchanges, "https://example.com/index.html")?;
+        assert_eq!(index_html.response.status(), StatusCode::MOVED_PERMANENTLY);
+
+        let a_js = find_exchange_by_uri(&exchanges, "https://example.com/js/hello.js")?;
+        assert_eq!(a_js.response.status(), StatusCode::OK);
+
         Ok(())
+    }
+
+    fn find_exchange_by_uri<'a>(exchanges: &'a [Exchange], uri: &str) -> Result<&'a Exchange> {
+        exchanges
+            .iter()
+            .find(|e| e.request.uri() == uri)
+            .context("not fouond")
     }
 }
