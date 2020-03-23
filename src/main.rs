@@ -14,19 +14,29 @@
 
 use anyhow::{ensure, Context as _};
 use chrono::Local;
+use serde::Serialize;
 use std::fs::File;
 use std::io::{BufWriter, Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
+use structopt::clap::arg_enum;
 use structopt::StructOpt;
 use webbundle::{Bundle, Result, Uri, Version};
 
-#[derive(StructOpt, Debug)]
+#[derive(StructOpt)]
 struct Cli {
     #[structopt(subcommand)]
     cmd: Command,
 }
 
-#[derive(StructOpt, Debug)]
+arg_enum! {
+    #[allow(non_camel_case_types)]
+    pub enum Format {
+        plain,
+        json,
+    }
+}
+
+#[derive(StructOpt)]
 enum Command {
     /// Example: webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
     #[structopt(name = "create")]
@@ -48,7 +58,11 @@ enum Command {
     Dump { file: String },
     /// List the contents briefly
     #[structopt(name = "list")]
-    List { file: String },
+    List {
+        file: String,
+        #[structopt(long = "format", possible_values(&Format::variants()))]
+        format: Option<Format>,
+    },
     /// Extract the contents
     #[structopt(name = "extract")]
     Extract { file: String },
@@ -71,7 +85,14 @@ fn env_logger_init() {
         .init();
 }
 
-fn list(bundle: &Bundle) {
+fn list(bundle: &Bundle, format: Option<Format>) {
+    match format {
+        None | Some(Format::plain) => list_plain(bundle),
+        Some(Format::json) => list_json(bundle),
+    }
+}
+
+fn list_plain(bundle: &Bundle) {
     println!("primary-url: {}", bundle.primary_url());
     if let Some(manifest) = bundle.manifest() {
         println!("manifest: {}", manifest);
@@ -87,6 +108,60 @@ fn list(bundle: &Bundle) {
         );
         log::debug!("headers: {:?}", response.headers());
     }
+}
+
+fn list_json(bundle: &Bundle) {
+    #[derive(Serialize)]
+    struct Request {
+        uri: String,
+    }
+
+    #[derive(Serialize)]
+    struct Response {
+        status: u16,
+        body: Body,
+    }
+
+    #[derive(Serialize)]
+    struct Body {
+        size: usize,
+    }
+
+    #[derive(Serialize)]
+    struct Exchange {
+        request: Request,
+        response: Response,
+    }
+
+    #[derive(Serialize)]
+    struct Bundle<'a> {
+        version: &'a [u8],
+        primary_url: String,
+        manifest: &'a Option<String>,
+        exchanges: Vec<Exchange>,
+    }
+
+    let bundle = Bundle {
+        version: bundle.version().bytes(),
+        primary_url: bundle.primary_url().to_string(),
+        manifest: &bundle.manifest().as_ref().map(|uri| uri.to_string()),
+        exchanges: bundle
+            .exchanges()
+            .iter()
+            .map(|exchange| Exchange {
+                request: Request {
+                    uri: exchange.request.uri().to_string(),
+                },
+                response: Response {
+                    status: exchange.response.status().as_u16(),
+                    body: Body {
+                        size: exchange.response.body().len(),
+                    },
+                },
+            })
+            .collect(),
+    };
+    println!("{}", serde_json::to_string(&bundle).unwrap());
 }
 
 fn make_url_path_relative(path: impl AsRef<Path>) -> PathBuf {
@@ -217,11 +292,11 @@ fn main() -> Result<()> {
             let write = BufWriter::new(File::create(&file)?);
             bundle.write_to(write)?;
         }
-        Command::List { file } => {
+        Command::List { file, format } => {
             let mut buf = Vec::new();
             File::open(&file)?.read_to_end(&mut buf)?;
             let bundle = Bundle::from_bytes(buf)?;
-            list(&bundle);
+            list(&bundle, format);
         }
         Command::Dump { file } => {
             let mut buf = Vec::new();
