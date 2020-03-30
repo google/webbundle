@@ -17,6 +17,8 @@ use crate::prelude::*;
 use headers::{ContentLength, ContentType, HeaderMapExt as _, HeaderValue};
 use http::StatusCode;
 use std::path::{Path, PathBuf};
+use tokio::fs;
+use tokio::prelude::*;
 use url::Url;
 use walkdir::WalkDir;
 
@@ -73,18 +75,25 @@ impl Builder {
     /// # Examples
     ///
     /// ```no_run
-    /// # use webbundle::{Bundle, Version};
+    /// # async {
+    /// use webbundle::{Bundle, Version};
     /// let bundle = Bundle::builder()
     ///     .version(Version::VersionB1)
     ///     .primary_url("https://example.com/".parse()?)
-    ///     .exchanges_from_dir("build", "https://example.com".parse()?)?
+    ///     .exchanges_from_dir("build", "https://example.com".parse()?).await?
     ///     .build()?;
-    /// # Result::Ok::<(), anyhow::Error>(())
+    /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
+    /// # };
     /// ```
-    pub fn exchanges_from_dir(mut self, dir: impl AsRef<Path>, base_url: Url) -> Result<Self> {
+    pub async fn exchanges_from_dir(
+        mut self,
+        dir: impl AsRef<Path>,
+        base_url: Url,
+    ) -> Result<Self> {
         self.exchanges.append(
             &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()), base_url)
-                .walk()?
+                .walk()
+                .await?
                 .build(),
         );
         Ok(self)
@@ -118,7 +127,8 @@ impl ExchangeBuilder {
         }
     }
 
-    fn walk(mut self) -> Result<Self> {
+    async fn walk(mut self) -> Result<Self> {
+        // TODO: Walkdir is not async.
         for entry in WalkDir::new(&self.base_dir) {
             let entry = entry?;
             log::info!("visit: {:?}", entry);
@@ -139,13 +149,13 @@ impl ExchangeBuilder {
                 let relative_url = pathdiff::diff_paths(dir, &self.base_dir).unwrap();
                 let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
                 // for <dir> -> Serves the contents of <dir>/index.html
-                self = self.exchange(&relative_url, &relative_path)?;
+                self = self.exchange(&relative_url, &relative_path).await?;
 
                 // for <dir>/index.html -> redirect to "./"
                 self = self.exchange_redirect(&relative_path, "./")?;
             } else {
                 let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
-                self = self.exchange(&relative_path, &relative_path)?;
+                self = self.exchange(&relative_path, &relative_path).await?;
             }
         }
         Ok(self)
@@ -171,14 +181,14 @@ impl ExchangeBuilder {
         Ok(self.base_url.join(relative_url)?.to_string().parse()?)
     }
 
-    fn exchange(
+    async fn exchange(
         mut self,
         relative_url: impl AsRef<Path>,
         relative_path: impl AsRef<Path>,
     ) -> Result<Self> {
         self.exchanges.push(Exchange {
             request: Request::get(self.url_from_relative_path(relative_url.as_ref())?).body(())?,
-            response: self.create_response(relative_path)?,
+            response: self.create_response(relative_path).await?,
         });
         Ok(self)
     }
@@ -200,13 +210,16 @@ impl ExchangeBuilder {
         Ok(response)
     }
 
-    fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
+    async fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
         ensure!(
             relative_path.as_ref().is_relative(),
             format!("Path is not relative: {}", relative_path.as_ref().display())
         );
         let path = self.base_dir.join(relative_path);
-        let body = std::fs::read(&path)?;
+
+        let mut file = fs::File::open(&path).await?;
+        let mut body = Vec::new();
+        file.read_buf(&mut body).await?;
 
         let content_length = ContentLength(body.len() as u64);
         let content_type = ContentType::from(mime_guess::from_path(&path).first_or_octet_stream());
@@ -244,8 +257,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn exchange_builder() -> Result<()> {
+    #[tokio::test]
+    async fn exchange_builder() -> Result<()> {
         let base_dir = {
             let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
             path.push("tests/builder");
@@ -253,7 +266,8 @@ mod tests {
         };
 
         let exchanges = ExchangeBuilder::new(base_dir.clone(), "https://example.com/".parse()?)
-            .exchange(".", "index.html")?
+            .exchange(".", "index.html")
+            .await?
             .build();
         assert_eq!(exchanges.len(), 1);
         let exchange = &exchanges[0];
@@ -276,8 +290,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn walk() -> Result<()> {
+    #[tokio::test]
+    async fn walk() -> Result<()> {
         let base_dir = {
             let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
             path.push("tests/builder");
@@ -285,7 +299,8 @@ mod tests {
         };
 
         let exchanges = ExchangeBuilder::new(base_dir, "https://example.com/".parse()?)
-            .walk()?
+            .walk()
+            .await?
             .build();
         assert_eq!(exchanges.len(), 3);
 

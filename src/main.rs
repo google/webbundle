@@ -269,7 +269,8 @@ fn extract(bundle: &Bundle) -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     env_logger_init();
     let args = Cli::from_args();
     match args.cmd {
@@ -283,7 +284,8 @@ fn main() -> Result<()> {
             let mut builder = Bundle::builder()
                 .version(Version::VersionB1)
                 .primary_url(primary_url.parse()?)
-                .exchanges_from_dir(resources_dir, base_url.parse()?)?;
+                .exchanges_from_dir(resources_dir, base_url.parse()?)
+                .await?;
             if let Some(manifest) = manifest {
                 builder = builder.manifest(manifest.parse()?);
             }

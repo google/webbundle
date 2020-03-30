@@ -34,17 +34,19 @@
 //! ## Creating a bundle from files
 //!
 //! ```no_run
+//! # async {
 //! use webbundle::{Bundle, Version};
 //!
 //! let bundle = Bundle::builder()
 //!     .version(Version::VersionB1)
 //!     .primary_url("https://example.com/index.html".parse()?)
-//!     .exchanges_from_dir("assets", "https://example.com".parse()?)?
+//!     .exchanges_from_dir("assets", "https://example.com".parse()?).await?
 //!     .build()?;
 //! println!("Created bundle: {:#?}", bundle);
 //! let write = std::io::BufWriter::new(std::fs::File::create("example.wbn")?);
 //! bundle.write_to(write)?;
 //! # Result::Ok::<(), anyhow::Error>(())
+//! # };
 //! ```
 
 mod builder;
