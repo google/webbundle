@@ -1,2 +1,2 @@
 [workspace]
-members = [ "webbundle" ]
+members = [ "webbundle", "webbundle-cli" ]
