@@ -51,7 +51,6 @@ fn env_logger_init() {
 async fn main() {
     env_logger_init();
     let args = Cli::from_args();
-    loggerv::init_with_verbosity(args.verbose).unwrap();
 
     let addr = (
         if args.bind_all {
