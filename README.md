@@ -15,7 +15,7 @@ This is not an officially supported Google product.
 
 [![crates.io](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle?label=webbundle)
 
-A core library. See [the dcumentation](https://docs.rs/webbundle).
+A core library. See [the documentation](https://docs.rs/webbundle).
 
 ## [webbundle-cli](https://github.com/google/webbundle/tree/master/webbundle-cli)
 
@@ -35,7 +35,7 @@ cargo install webbundle-cli
 
 ### Examples
 
-The binary name for `webbundle-cli` is `webbuncle`.
+The binary name for `webbundle-cli` is `webbundle`.
 
 #### create
 
