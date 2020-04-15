@@ -2,11 +2,12 @@ name: release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'webbundle-cli-v*.*.*'
 jobs:
   build:
     env:
       BIN_NAME: webbundle
+      PACKAGE_NAME: webbundle-cli
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
@@ -29,18 +30,18 @@ jobs:
         run: |
           strip target/${{ matrix.target }}/release/${{ env.BIN_NAME }}
           cd target/${{ matrix.target }}/release
-          tar czvf ../../../${{ env.BIN_NAME }}-${{ matrix.target }}.tar.gz ${{ env.BIN_NAME }}
+          tar czvf ../../../${{ env.PACKAGE_NAME }}-${{ matrix.target }}.tar.gz ${{ env.BIN_NAME }}
           cd -
       - name: Package (windows)
         if: matrix.os == 'windows-latest'
         run: |
           strip target/${{ matrix.target }}/release/${{ env.BIN_NAME }}.exe
           cd target/${{ matrix.target }}/release
-          7z a ../../../${{ env.BIN_NAME }}-${{ matrix.target }}.zip ${{ env.BIN_NAME }}.exe
+          7z a ../../../${{ env.PACKAGE_NAME }}-${{ matrix.target }}.zip ${{ env.BIN_NAME }}.exe
           cd -
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: '${{ env.BIN_NAME }}-${{ matrix.target }}*'
+          files: '${{ env.PACKAGE_NAME }}-${{ matrix.target }}*'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
