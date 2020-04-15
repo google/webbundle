@@ -1,7 +1,9 @@
 # WebBundle
 
 [![build](https://github.com/google/webbundle/workflows/build/badge.svg)](https://github.com/google/webbundle/actions)
-[![crates.io](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle)
+[![webbundle](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle)
+[![webbundle-cli](https://img.shields.io/crates/v/webbundle-cli.svg)](https://crates.io/crates/webbundle-cli)
+[![webbundle-server](https://img.shields.io/crates/v/webbundle-server.svg)](https://crates.io/crates/webbundle-server)
 
 `google/webbundle` is a project which aims to provide a high-performace library
 and various tools for handling WebBundle format.
