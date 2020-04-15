@@ -11,13 +11,13 @@ This is not an officially supported Google product.
 
 - [Web Bundles](https://wicg.github.io/webpackage/draft-yasskin-wpack-bundled-exchanges.html)
 
-## [webbundle](https://github.com/google/webbundle/webbundle)
+## [webbundle](https://github.com/google/webbundle/tree/master/webbundle)
 
 [![crates.io](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle?label=webbundle)
 
 A core library. See [the dcumentation](https://docs.rs/webbundle).
 
-## [webbundle-cli](https://github.com/google/webbundle/webbundle-cli)
+## [webbundle-cli](https://github.com/google/webbundle/tree/master/webbundle-cli)
 
 [![crates.io](https://img.shields.io/crates/v/webbundle-cli.svg)](https://crates.io/crates/webbundle-cli)
 
@@ -64,7 +64,7 @@ $ webbundle extract ./example.wbn
 
 See `webbundle --help` for detail usage.
 
-## [webbundle-server](https://github.com/google/webbundle/webbundle-server)
+## [webbundle-server](https://github.com/google/webbundle/tree/master/webbundle-server)
 
 [![crates.io](https://img.shields.io/crates/v/webbundle-server.svg)](https://crates.io/crates/webbundle-server)
 
