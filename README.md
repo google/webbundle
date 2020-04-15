@@ -1,9 +1,6 @@
 # WebBundle
 
 [![build](https://github.com/google/webbundle/workflows/build/badge.svg)](https://github.com/google/webbundle/actions)
-[![webbundle](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle)
-[![webbundle-cli](https://img.shields.io/crates/v/webbundle-cli.svg)](https://crates.io/crates/webbundle-cli)
-[![webbundle-server](https://img.shields.io/crates/v/webbundle-server.svg)](https://crates.io/crates/webbundle-server)
 
 `google/webbundle` is a project which aims to provide a high-performace library
 and various tools for handling WebBundle format.
@@ -14,19 +11,19 @@ This is not an officially supported Google product.
 
 - [Web Bundles](https://wicg.github.io/webpackage/draft-yasskin-wpack-bundled-exchanges.html)
 
-## Crates
+## [webbundle](https://github.com/google/webbundle/webbundle)
 
-This repository hosts the following crates:
-
-### [webbundle](https://github.com/google/webbundle/webbundle)
+[![crates.io](https://img.shields.io/crates/v/webbundle.svg)](https://crates.io/crates/webbundle?label=webbundle)
 
 A core library. See [the dcumentation](https://docs.rs/webbundle).
 
-### [webbundle-cli](https://github.com/google/webbundle/webbundle-cli)
+## [webbundle-cli](https://github.com/google/webbundle/webbundle-cli)
+
+[![crates.io](https://img.shields.io/crates/v/webbundle-cli.svg)](https://crates.io/crates/webbundle-cli)
 
 A command line tool for WebBundle.
 
-#### Instalation
+### Instalation
 
 [Archives of precompiled binaries for `webbundle-cli` are available for Windows, macOS and Linux](https://github.com/google/webbundle/releases).
 
@@ -36,11 +33,11 @@ If you're a Rust programmer, `webbundle-cli` can be installed with `cargo`.
 cargo install webbundle-cli
 ```
 
-#### Examples
+### Examples
 
 The binary name for `webbundle-cli` is `webbuncle`.
 
-##### create
+#### create
 
 Create `example.wbn` from the files under `build/dist` directory. This is
 similar to `tar cvf example.tar build/dist`.
@@ -49,7 +46,7 @@ similar to `tar cvf example.tar build/dist`.
 $ webbundle create --base-url "https://example.com/" --primary-url "https://example.com/foo/" example.wbn build/dist
 ```
 
-##### list
+#### list
 
 List the contents of `example.wbn`. This is similar to `tar tvf example.tar`.
 
@@ -57,7 +54,7 @@ List the contents of `example.wbn`. This is similar to `tar tvf example.tar`.
 $ webbundle list ./example.wbn
 ```
 
-##### extract
+#### extract
 
 Extract the contents of `example.wbn`. This is similar to `tar xvf example.tar`.
 
@@ -67,7 +64,9 @@ $ webbundle extract ./example.wbn
 
 See `webbundle --help` for detail usage.
 
-### [webbundle-server](https://github.com/google/webbundle/webbundle-server)
+## [webbundle-server](https://github.com/google/webbundle/webbundle-server)
+
+[![crates.io](https://img.shields.io/crates/v/webbundle-server.svg)](https://crates.io/crates/webbundle-server)
 
 An experimental web server which dynamically assembles and serves WebBundle.
 
