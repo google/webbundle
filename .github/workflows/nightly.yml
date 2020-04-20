@@ -13,6 +13,7 @@ jobs:
       - run: rustup update ${{ matrix.rust }}
       - run: rustup default ${{ matrix.rust }}
       - run: rustup component add rustfmt
+      - run: rustup component add clippy
       - run: cargo update
       - run: cargo build --all-features
       - run: cargo test --all-features
