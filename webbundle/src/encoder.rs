@@ -36,7 +36,7 @@ impl<W: Write> Write for CountWrite<W> {
             Ok(n) => {
                 self.count += n;
                 Ok(n)
-            },
+            }
             Err(e) => Err(e),
         }
     }
