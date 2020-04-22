@@ -32,8 +32,13 @@ impl<W> CountWrite<W> {
 
 impl<W: Write> Write for CountWrite<W> {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        self.count += buf.len();
-        self.inner.write(buf)
+        match self.inner.write(buf) {
+            Ok(n) => {
+                self.count += n;
+                Ok(n)
+            }
+            Err(e) => Err(e),
+        }
     }
     fn flush(&mut self) -> std::io::Result<()> {
         self.inner.flush()
