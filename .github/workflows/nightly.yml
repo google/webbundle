@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        rust: [stable, beta, nightly]
+        rust: [stable, beta]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
