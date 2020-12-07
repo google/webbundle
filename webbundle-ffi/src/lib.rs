@@ -5,7 +5,6 @@ use std::ptr;
 use std::slice;
 use webbundle::Bundle;
 
-#[no_mangle]
 pub struct WebBundle(Bundle);
 
 /// Construct a new `WebBundle` from the provided `bytes`.
