@@ -1,7 +1,7 @@
-name: nightly
+name: weekly
 on:
   schedule:
-    - cron: 0 0 * * 1
+    - cron: 00 3 * * 1
 jobs:
   build:
     strategy:
