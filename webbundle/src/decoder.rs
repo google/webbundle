@@ -141,7 +141,7 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             .de
             .text()
             .context("bundle: Failed to read primary_url string")?;
-        Ok(url.parse().context("Failed to parse primary_url")?)
+        url.parse().context("Failed to parse primary_url")
     }
 
     fn read_section_offsets(&mut self) -> Result<Vec<SectionOffset>> {
