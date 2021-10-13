@@ -113,7 +113,7 @@ async fn main() {
 
 async fn webbundle_reply(base_dir: impl AsRef<Path>) -> Result<Response<Body>> {
     let bundle = Bundle::builder()
-        .version(Version::VersionB1)
+        .version(Version::VersionB2)
         .primary_url("https://example.com".parse()?)
         .exchanges_from_dir(base_dir, "https://example.com/".parse()?)
         .await?

@@ -28,15 +28,14 @@ pub type Response = http::Response<Body>;
 
 pub const HEADER_MAGIC_BYTES: [u8; 8] = [0xf0, 0x9f, 0x8c, 0x90, 0xf0, 0x9f, 0x93, 0xa6];
 pub(crate) const VERSION_BYTES_LEN: usize = 4;
-pub(crate) const TOP_ARRAY_LEN: usize = 6;
-pub(crate) const KNOWN_SECTION_NAMES: [&str; 5] =
-    ["index", "manifest", "signatures", "critical", "responses"];
+pub(crate) const TOP_ARRAY_LEN: usize = 5;
+pub(crate) const KNOWN_SECTION_NAMES: [&str; 4] = ["index", "critical", "responses", "primary-url"];
 
 /// Represents the version of WebBundle.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Version {
-    /// Version b1, which is used in Google Chrome
-    VersionB1,
+    /// Version b2, which is used in Google Chrome
+    VersionB2,
     /// Version 1
     Version1,
     /// Unknown version
@@ -47,7 +46,7 @@ impl Version {
     /// Gets the bytes which represents this version.
     pub fn bytes(&self) -> &[u8; 4] {
         match self {
-            Version::VersionB1 => &[0x62, 0x31, 0, 0],
+            Version::VersionB2 => &[0x62, 0x32, 0, 0],
             Version::Version1 => &[0x31, 0, 0, 0],
             Version::Unknown(a) => &a,
         }
@@ -65,8 +64,7 @@ pub struct Exchange {
 #[derive(Debug)]
 pub struct Bundle {
     pub(crate) version: Version,
-    pub(crate) primary_url: Uri,
-    pub(crate) manifest: Option<Uri>,
+    pub(crate) primary_url: Option<Uri>,
     pub(crate) exchanges: Vec<Exchange>,
 }
 
@@ -77,13 +75,8 @@ impl Bundle {
     }
 
     /// Gets the primary url.
-    pub fn primary_url(&self) -> &Uri {
+    pub fn primary_url(&self) -> &Option<Uri> {
         &self.primary_url
-    }
-
-    /// Gets the manifest.
-    pub fn manifest(&self) -> &Option<Uri> {
-        &self.manifest
     }
 
     /// Gets the exchanges.

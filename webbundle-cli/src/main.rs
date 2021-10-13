@@ -33,6 +33,7 @@ arg_enum! {
     pub enum Format {
         plain,
         json,
+        debug,
     }
 }
 
@@ -44,18 +45,13 @@ enum Command {
         #[structopt(short = "b", long = "base-url")]
         base_url: String,
         #[structopt(short = "p", long = "primary-url")]
-        primary_url: String,
-        #[structopt(short = "m", long = "manifest")]
-        manifest: Option<String>,
+        primary_url: Option<String>,
         /// File name
         file: String,
         /// Directory from where resources are read
         resources_dir: String,
         // TODO: Support version
     },
-    /// (deprecated) Example: webbundle dump ./example.wbn
-    #[structopt(name = "dump")]
-    Dump { file: String },
     /// List the contents briefly
     #[structopt(name = "list")]
     List {
@@ -89,13 +85,13 @@ fn list(bundle: &Bundle, format: Option<Format>) {
     match format {
         None | Some(Format::plain) => list_plain(bundle),
         Some(Format::json) => list_json(bundle),
+        Some(Format::debug) => list_debug(bundle),
     }
 }
 
 fn list_plain(bundle: &Bundle) {
-    println!("primary-url: {}", bundle.primary_url());
-    if let Some(manifest) = bundle.manifest() {
-        println!("manifest: {}", manifest);
+    if let Some(primary_url) = bundle.primary_url() {
+        println!("primary_url: {}", primary_url);
     }
     for exchange in bundle.exchanges() {
         let request = &exchange.request;
@@ -119,12 +115,13 @@ fn list_json(bundle: &Bundle) {
     #[derive(Serialize)]
     struct Response {
         status: u16,
-        body: Body,
+        size: usize,
+        body: String,
     }
 
     #[derive(Serialize)]
     struct Body {
-        size: usize,
+        body: String,
     }
 
     #[derive(Serialize)]
@@ -136,15 +133,13 @@ fn list_json(bundle: &Bundle) {
     #[derive(Serialize)]
     struct Bundle<'a> {
         version: &'a [u8],
-        primary_url: String,
-        manifest: &'a Option<String>,
+        primary_url: &'a Option<String>,
         exchanges: Vec<Exchange>,
     }
 
     let bundle = Bundle {
         version: bundle.version().bytes(),
-        primary_url: bundle.primary_url().to_string(),
-        manifest: &bundle.manifest().as_ref().map(|uri| uri.to_string()),
+        primary_url: &bundle.primary_url().as_ref().map(|uri| uri.to_string()),
         exchanges: bundle
             .exchanges()
             .iter()
@@ -154,14 +149,17 @@ fn list_json(bundle: &Bundle) {
                 },
                 response: Response {
                     status: exchange.response.status().as_u16(),
-                    body: Body {
-                        size: exchange.response.body().len(),
-                    },
+                    size: exchange.response.body().len(),
+                    body: String::from_utf8_lossy(exchange.response.body()).to_string(),
                 },
             })
             .collect(),
     };
     println!("{}", serde_json::to_string(&bundle).unwrap());
+}
+
+fn list_debug(bundle: &Bundle) {
+    println!("{:#?}", bundle);
 }
 
 fn make_url_path_relative(path: impl AsRef<Path>) -> PathBuf {
@@ -278,16 +276,14 @@ async fn main() -> Result<()> {
             base_url,
             primary_url,
             file,
-            manifest,
             resources_dir,
         } => {
             let mut builder = Bundle::builder()
-                .version(Version::VersionB1)
-                .primary_url(primary_url.parse()?)
+                .version(Version::VersionB2)
                 .exchanges_from_dir(resources_dir, base_url.parse()?)
                 .await?;
-            if let Some(manifest) = manifest {
-                builder = builder.manifest(manifest.parse()?);
+            if let Some(primary_url) = primary_url {
+                builder = builder.primary_url(primary_url.parse()?);
             }
             let bundle = builder.build()?;
             log::debug!("{:#?}", bundle);
@@ -299,12 +295,6 @@ async fn main() -> Result<()> {
             File::open(&file)?.read_to_end(&mut buf)?;
             let bundle = Bundle::from_bytes(buf)?;
             list(&bundle, format);
-        }
-        Command::Dump { file } => {
-            let mut buf = Vec::new();
-            File::open(&file)?.read_to_end(&mut buf)?;
-            let bundle = Bundle::from_bytes(buf)?;
-            println!("{:#?}", bundle);
         }
         Command::Extract { file } => {
             let mut buf = Vec::new();

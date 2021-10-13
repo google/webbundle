@@ -78,8 +78,7 @@ impl Builder {
     /// # async {
     /// use webbundle::{Bundle, Version};
     /// let bundle = Bundle::builder()
-    ///     .version(Version::VersionB1)
-    ///     .primary_url("https://example.com/".parse()?)
+    ///     .version(Version::VersionB2)
     ///     .exchanges_from_dir("build", "https://example.com".parse()?).await?
     ///     .build()?;
     /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
@@ -103,8 +102,7 @@ impl Builder {
     pub fn build(self) -> Result<Bundle> {
         Ok(Bundle {
             version: self.version.context("no version")?,
-            primary_url: self.primary_url.context("no primary_url")?,
-            manifest: self.manifest,
+            primary_url: self.primary_url,
             exchanges: self.exchanges,
         })
     }
@@ -219,7 +217,9 @@ impl ExchangeBuilder {
 
         let mut file = fs::File::open(&path).await?;
         let mut body = Vec::new();
-        file.read_buf(&mut body).await?;
+        // TODO: read_buf doesn't consume all.
+        // file.read_buf(&mut body).await?;
+        file.read_to_end(&mut body).await?;
 
         let content_length = ContentLength(body.len() as u64);
         let content_type = ContentType::from(mime_guess::from_path(&path).first_or_octet_stream());
@@ -253,7 +253,10 @@ mod tests {
             .primary_url("https://example.com".parse()?)
             .build()?;
         assert_eq!(bundle.version, Version::Version1);
-        assert_eq!(bundle.primary_url, "https://example.com".parse::<Uri>()?);
+        assert_eq!(
+            bundle.primary_url,
+            Some("https://example.com".parse::<Uri>()?)
+        );
         Ok(())
     }
 

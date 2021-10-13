@@ -75,17 +75,17 @@ An experimental web server which dynamically assembles and serves WebBundle.
 The development is at very early stage. There are many TODO items:
 
 - [x] Parser
+  - [x] Support b2 format
+- [x] Encoder
+  - [x] Support b2 format
 - [x] WebBundle Builder
   - [x] Create a WebBundle from a directory structure
   - [x] Low-level APIs to create and manipulate WebBundle file
 - [x] Use `http::Request`, `http::Response` and `http::Uri` for better
-      engonomics
-- [ ] Support Signatures
-- [ ] Support Variants
+  ergonomics
 - [ ] Use async/await to avoid blocking operations
 - [ ] More CLI subcommands
   - [x] `create`
-  - [x] `dump` (deprecated)
   - [x] `list`
   - [x] `extract`
   - [ ] Make these subcommands more ergonomics
@@ -93,10 +93,11 @@ The development is at very early stage. There are many TODO items:
 - [ ] Split this crate into several crates:
   - [x] `webbundle`: Core library
   - [x] `webbundle-cli`: CLI, like a `tar` command
-  - [ ] `webbundle-ffi`: Foreign function interface for C or C++ program, like a
-        chromium
+  - [x] `webbundle-ffi`: Foreign function interface for C or C++ program, like a
+    chromium
   - [x] `webbundle-server`: Experimental http server which can assemble and
-        serve a webbundle dynamically, based on request parameters
+    serve a webbundle dynamically, based on request parameters
+  - [ ] `webbundle-wasm`: WebAssembly binding
 
 ## Contributing
 

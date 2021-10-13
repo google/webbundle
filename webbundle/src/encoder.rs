@@ -90,11 +90,6 @@ impl<W: Write> Encoder<W> {
         self.se.write_bytes(version.bytes())?;
         Ok(())
     }
-
-    fn write_primary_url(&mut self, primary_url: &Uri) -> Result<()> {
-        self.se.write_text(&primary_url.to_string())?;
-        Ok(())
-    }
 }
 
 impl<W: Write + Sized> Encoder<CountWrite<W>> {
@@ -103,7 +98,9 @@ impl<W: Write + Sized> Encoder<CountWrite<W>> {
             .write_array(Len::Len(bundle::TOP_ARRAY_LEN as u64))?;
         self.write_magic()?;
         self.write_version(&bundle.version)?;
-        self.write_primary_url(&bundle.primary_url)?;
+
+        // TODO: optional primary section -> encode_sections
+        // self.write_primary_url(&bundle.primary_url)?;
 
         let sections = encode_sections(bundle)?;
 
@@ -129,11 +126,11 @@ struct Section {
 fn encode_sections(bundle: &Bundle) -> Result<Vec<Section>> {
     let mut sections = Vec::new();
 
-    // manifest
-    if let Some(uri) = &bundle.manifest {
-        let bytes = encode_manifest_section(uri)?;
+    // primary-url
+    if let Some(uri) = &bundle.primary_url {
+        let bytes = encode_primary_url_section(uri)?;
         sections.push(Section {
-            name: "manifest",
+            name: "primary-url",
             bytes,
         });
     };
@@ -157,7 +154,7 @@ fn encode_sections(bundle: &Bundle) -> Result<Vec<Section>> {
     Ok(sections)
 }
 
-fn encode_manifest_section(url: &Uri) -> Result<Vec<u8>> {
+fn encode_primary_url_section(url: &Uri) -> Result<Vec<u8>> {
     let mut se = Serializer::new_vec();
     se.write_text(url.to_string())?;
     Ok(se.finalize())
@@ -203,9 +200,7 @@ fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u
         key.write_text(response_location.uri.to_string())?;
 
         let mut value = Serializer::new_vec();
-        value.write_array(Len::Len(3))?;
-        // TODO: Support variants.
-        value.write_bytes(b"")?;
+        value.write_array(Len::Len(2))?;
         value.write_unsigned_integer(response_location.offset as u64)?;
         value.write_unsigned_integer(response_location.length as u64)?;
 

@@ -44,7 +44,8 @@ pub unsafe extern "C" fn webbundle_destroy(bundle: *mut WebBundle) {
 /// Copy the `bundle`'s primary_url into a user-provided `buffer`,
 /// returning the number of bytes copied.
 ///
-/// If user-provided buffer's length is not enough, this returns `-1`.
+/// If there is no primary-url in the bundle, this returns `-1`.
+/// If user-provided buffer's length is not enough, this returns `-2`.
 ///
 /// # Safety
 ///
@@ -60,14 +61,18 @@ pub unsafe extern "C" fn webbundle_primary_url(
         return -1;
     }
     let bundle: &Bundle = &((*bundle).0);
-    let uri = bundle.primary_url().to_string();
+    if let Some(uri) = bundle.primary_url() {
+        let uri = uri.to_string();
 
-    let buffer: &mut [u8] = slice::from_raw_parts_mut(buffer as *mut u8, length as usize);
+        let buffer: &mut [u8] = slice::from_raw_parts_mut(buffer as *mut u8, length as usize);
 
-    if buffer.len() < uri.len() {
+        if buffer.len() < uri.len() {
+            return -1;
+        }
+
+        ptr::copy_nonoverlapping(uri.as_ptr(), buffer.as_mut_ptr(), uri.len());
+        uri.len() as c_int
+    } else {
         return -1;
     }
-
-    ptr::copy_nonoverlapping(uri.as_ptr(), buffer.as_mut_ptr(), uri.len());
-    uri.len() as c_int
 }

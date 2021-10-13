@@ -58,10 +58,9 @@ struct RequestEntry {
 #[derive(Debug)]
 struct Metadata {
     version: Version,
-    primary_url: Uri,
     section_offsets: Vec<SectionOffset>,
     requests: Vec<RequestEntry>,
-    manifest: Option<Manifest>,
+    primary_url: Option<PrimaryUrl>,
 }
 
 type Deserializer<R> = cbor_event::de::Deserializer<R>;
@@ -78,7 +77,7 @@ impl<T> Decoder<T> {
     }
 }
 
-type Manifest = Uri;
+type PrimaryUrl = Uri;
 
 impl<T: AsRef<[u8]>> Decoder<T> {
     fn decode(&mut self) -> Result<Bundle> {
@@ -87,7 +86,6 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             version: metadata.version,
             primary_url: metadata.primary_url,
             exchanges: self.read_responses(metadata.requests)?,
-            manifest: metadata.manifest,
         })
     }
 
@@ -98,15 +96,16 @@ impl<T: AsRef<[u8]>> Decoder<T> {
         );
         self.read_magic_bytes()?;
         let version = self.read_version()?;
-        let primary_url = self.read_primary_url()?;
+        log::debug!("version: {:?}", version);
         let section_offsets = self.read_section_offsets()?;
-        let (requests, manifest) = self.read_sections(&section_offsets)?;
+        log::debug!("section_offsets {:?}", section_offsets);
+        // let primary_url = self.read_primary_url()?;
+        let (requests, primary_url) = self.read_sections(&section_offsets)?;
         Ok(Metadata {
             version,
-            primary_url,
             section_offsets,
             requests,
-            manifest,
+            primary_url,
         })
     }
 
@@ -128,20 +127,11 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             AsRef::<[u8]>::as_ref(&bytes).try_into().unwrap();
         Ok(if &version == bundle::Version::Version1.bytes() {
             Version::Version1
-        } else if &version == bundle::Version::VersionB1.bytes() {
-            Version::VersionB1
+        } else if &version == bundle::Version::VersionB2.bytes() {
+            Version::VersionB2
         } else {
             Version::Unknown(version)
         })
-    }
-
-    fn read_primary_url(&mut self) -> Result<Uri> {
-        log::debug!("read_primary_url");
-        let url: String = self
-            .de
-            .text()
-            .context("bundle: Failed to read primary_url string")?;
-        url.parse().context("Failed to parse primary_url")
     }
 
     fn read_section_offsets(&mut self) -> Result<Vec<SectionOffset>> {
@@ -207,11 +197,12 @@ impl<T: AsRef<[u8]>> Decoder<T> {
     fn read_sections(
         &mut self,
         section_offsets: &[SectionOffset],
-    ) -> Result<(Vec<RequestEntry>, Option<Manifest>)> {
+    ) -> Result<(Vec<RequestEntry>, Option<PrimaryUrl>)> {
         log::debug!("read_sections");
         let n = self
             .read_array_len()
             .context("Failed to read section header")?;
+        log::debug!("n: {:?}", n);
         ensure!(
             n as usize == section_offsets.len(),
             format!(
@@ -222,8 +213,11 @@ impl<T: AsRef<[u8]>> Decoder<T> {
         );
 
         let responses_section_offset = section_offsets.last().unwrap().offset;
+
+        dbg!(responses_section_offset);
+
         let mut requests = vec![];
-        let mut manifest: Option<Manifest> = None;
+        let mut primary_url: Option<PrimaryUrl> = None;
 
         for SectionOffset {
             name,
@@ -240,27 +234,33 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             // TODO: Support ignoredSections
             match name.as_ref() {
                 "index" => {
+                    dbg!(name);
                     requests = section_decoder.read_index(responses_section_offset)?;
                 }
                 "responses" => {
+                    dbg!(name);
                     // Skip responses section becuase we read responses later.
                 }
-                "manifest" => {
-                    manifest = Some(section_decoder.read_manifest()?);
-                }
-                "signatures" => {
-                    log::warn!("signatues section is not supported yet");
+                "primary-url" => {
+                    dbg!(name);
+                    primary_url = Some(section_decoder.read_primary_url()?);
                 }
                 _ => {
                     log::warn!("Unknown section found: {}", name);
                 }
             }
         }
-        Ok((requests, manifest))
+        Ok((requests, primary_url))
     }
 
-    fn read_manifest(&mut self) -> Result<Uri> {
-        Ok(self.de.text()?.parse()?)
+    fn read_primary_url(&mut self) -> Result<PrimaryUrl> {
+        log::debug!("read_primary_url");
+        Ok(self
+            .de
+            .text()
+            .context("bundle: Failed to read primary_url string")?
+            .parse()
+            .context("Failed to parse primary_url")?)
     }
 
     fn read_index(&mut self, responses_section_offset: u64) -> Result<Vec<RequestEntry>> {
@@ -270,28 +270,20 @@ impl<T: AsRef<[u8]>> Decoder<T> {
                 bail!("bundle: Failed to decode index section map header");
             }
         };
+        dbg!(index_map_len);
+
         let mut requests = vec![];
         for _ in 0..index_map_len {
             let uri = self.de.text()?.parse::<Uri>()?;
-
-            let value_array_len = match self.de.array()? {
-                Len::Len(0) => {
-                    bail!("bundle: Failed to decode index section. value array is empty");
-                }
-                Len::Len(n) => n,
-                Len::Indefinite => {
-                    bail!("bundle: Failed to decode index section value array headder");
-                }
-            };
-
-            let variant_value = self.de.bytes()?;
-            ensure!(variant_value.is_empty(), "variant is not supported");
+            dbg!(&uri);
             ensure!(
-                value_array_len == 3,
-                "bundle: The size of value array must be 3"
+                self.read_array_len()? == 2,
+                "bundle: Failed to decode index item"
             );
             let offset = self.de.unsigned_integer()?;
+            dbg!(offset);
             let length = self.de.unsigned_integer()?;
+            dbg!(length);
             requests.push(RequestEntry {
                 request: Request::get(uri).body(())?,
                 response_location: ResponseLocation::new(responses_section_offset, offset, length),

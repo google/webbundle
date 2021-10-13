@@ -38,8 +38,7 @@
 //! use webbundle::{Bundle, Version};
 //!
 //! let bundle = Bundle::builder()
-//!     .version(Version::VersionB1)
-//!     .primary_url("https://example.com/index.html".parse()?)
+//!     .version(Version::VersionB2)
 //!     .exchanges_from_dir("assets", "https://example.com".parse()?).await?
 //!     .build()?;
 //! println!("Created bundle: {:#?}", bundle);
