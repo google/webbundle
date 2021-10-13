@@ -48,7 +48,7 @@ impl Version {
         match self {
             Version::VersionB2 => &[0x62, 0x32, 0, 0],
             Version::Version1 => &[0x31, 0, 0, 0],
-            Version::Unknown(a) => &a,
+            Version::Unknown(a) => a,
         }
     }
 }
@@ -91,12 +91,12 @@ impl Bundle {
 
     /// Encodes this bundle and write the result to the given `write`.
     pub fn write_to<W: Write + Sized>(&self, write: W) -> Result<()> {
-        encoder::encode(&self, write)
+        encoder::encode(self, write)
     }
 
     /// Encodes this bundle.
     pub fn encode(&self) -> Result<Vec<u8>> {
-        encoder::encode_to_vec(&self)
+        encoder::encode_to_vec(self)
     }
 
     /// Returns a new builder.

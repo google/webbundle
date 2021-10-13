@@ -255,12 +255,11 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 
     fn read_primary_url(&mut self) -> Result<PrimaryUrl> {
         log::debug!("read_primary_url");
-        Ok(self
-            .de
+        self.de
             .text()
             .context("bundle: Failed to read primary_url string")?
             .parse()
-            .context("Failed to parse primary_url")?)
+            .context("Failed to parse primary_url")
     }
 
     fn read_index(&mut self, responses_section_offset: u64) -> Result<Vec<RequestEntry>> {

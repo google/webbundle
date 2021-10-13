@@ -73,6 +73,6 @@ pub unsafe extern "C" fn webbundle_primary_url(
         ptr::copy_nonoverlapping(uri.as_ptr(), buffer.as_mut_ptr(), uri.len());
         uri.len() as c_int
     } else {
-        return -1;
+        -1
     }
 }
