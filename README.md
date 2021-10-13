@@ -23,7 +23,7 @@ A core library. See [the documentation](https://docs.rs/webbundle).
 
 A command line tool for WebBundle.
 
-### Instalation
+### Installation
 
 [Archives of precompiled binaries for `webbundle-cli` are available for Windows, macOS and Linux](https://github.com/google/webbundle/releases).
 
