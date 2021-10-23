@@ -1,7 +1,7 @@
 [package]
 authors = ["Hayato Ito <hayato@google.com>"]
 description = "WebBundle ffi"
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0"
 name = "webbundle-ffi"
 readme = "../README.md"
