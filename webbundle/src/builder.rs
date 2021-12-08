@@ -235,6 +235,7 @@ impl ExchangeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
 
     #[test]
     fn build_invalid_bundle() -> Result<()> {
@@ -324,5 +325,36 @@ mod tests {
             .iter()
             .find(|e| e.request.uri() == uri)
             .context("not fouond")
+    }
+
+    /// This test uses an external tool, `dump-bundle`.
+    /// See https://github.com/WICG/webpackage/go/bundle
+    #[ignore]
+    #[tokio::test]
+    async fn encode_and_let_go_dump_bundle_decode_it() -> Result<()> {
+        // Create a bundle.
+        let base_dir = {
+            let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            path.push("tests/builder");
+            path
+        };
+
+        let bundle = Bundle::builder()
+            .version(Version::VersionB2)
+            .exchanges_from_dir(base_dir, "https://example.com".parse()?)
+            .await?
+            .build()?;
+
+        let mut file = tempfile::NamedTempFile::new()?;
+        file.write_all(&bundle.encode()?)?;
+
+        // Dump the created bundle by `dump-bundle`.
+        let res = std::process::Command::new("dump-bundle")
+            .arg("-i")
+            .arg(file.path())
+            .output()?;
+
+        assert!(res.status.success(), "dump-bundle should read the bundle");
+        Ok(())
     }
 }

@@ -358,19 +358,53 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
 
-    // fn init_env_logger() {
-    //     let _ = env_logger::builder().is_test(true).try_init();
-    // }
+    /// This test uses an external tool, `gen-bundle`.
+    /// See https://github.com/WICG/webpackage/go/bundle
+    #[ignore]
+    #[tokio::test]
+    async fn decode_bundle_encoded_by_go_gen_bundle() -> Result<()> {
+        use std::io::Read;
 
-    // #[test]
-    // fn read_magic_test() -> Result<()> {
-    //     init_env_logger();
-    //     assert!(Decoder::new(bundle::HEADER_MAGIC_BYTES)
-    //         .read_magic_bytes()
-    //         .is_ok());
-    //     assert!(Decoder::new([]).read_magic_bytes().is_err());
-    //     Ok(())
-    // }
+        let base_dir = {
+            let mut path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            path.push("tests/builder");
+            path
+        };
+
+        let mut file = tempfile::NamedTempFile::new()?;
+
+        // Create a bundle by `gen-bundle`.
+        let res = std::process::Command::new("gen-bundle")
+            .arg("--version")
+            .arg("b2")
+            .arg("-dir")
+            .arg(base_dir)
+            .arg("-baseURL")
+            .arg("https://example.com/")
+            .arg("-o")
+            .arg(file.path())
+            .output()?;
+        assert!(res.status.success());
+
+        // Parse the created bundle.
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        let bundle = Bundle::from_bytes(bytes)?;
+
+        assert_eq!(bundle.version, Version::VersionB2);
+        assert_eq!(bundle.exchanges.len(), 3);
+        assert_eq!(bundle.exchanges[0].request.uri(), "https://example.com/");
+        assert_eq!(
+            bundle.exchanges[1].request.uri(),
+            "https://example.com/index.html"
+        );
+        assert_eq!(
+            bundle.exchanges[2].request.uri(),
+            "https://example.com/js/hello.js"
+        );
+
+        Ok(())
+    }
 }
