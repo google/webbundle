@@ -59,8 +59,6 @@ struct RequestEntry {
 struct Metadata {
     version: Version,
     section_offsets: Vec<SectionOffset>,
-    requests: Vec<RequestEntry>,
-    primary_url: Option<PrimaryUrl>,
 }
 
 type Deserializer<R> = cbor_event::de::Deserializer<R>;
@@ -82,10 +80,15 @@ type PrimaryUrl = Uri;
 impl<T: AsRef<[u8]>> Decoder<T> {
     fn decode(&mut self) -> Result<Bundle> {
         let metadata = self.read_metadata()?;
+        log::debug!("metadata {:?}", metadata);
+
+        let (requests, primary_url) = self.read_sections(&metadata.section_offsets)?;
+        let exchanges = self.read_responses(requests)?;
+
         Ok(Bundle {
             version: metadata.version,
-            primary_url: metadata.primary_url,
-            exchanges: self.read_responses(metadata.requests)?,
+            primary_url,
+            exchanges,
         })
     }
 
@@ -96,16 +99,10 @@ impl<T: AsRef<[u8]>> Decoder<T> {
         );
         self.read_magic_bytes()?;
         let version = self.read_version()?;
-        log::debug!("version: {:?}", version);
         let section_offsets = self.read_section_offsets()?;
-        log::debug!("section_offsets {:?}", section_offsets);
-        // let primary_url = self.read_primary_url()?;
-        let (requests, primary_url) = self.read_sections(&section_offsets)?;
         Ok(Metadata {
             version,
             section_offsets,
-            requests,
-            primary_url,
         })
     }
 
