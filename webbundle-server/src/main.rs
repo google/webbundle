@@ -3,7 +3,6 @@ use chrono::Local;
 use headers::{ContentLength, ContentType, HeaderMapExt as _};
 use http::{Response, StatusCode};
 use hyper::Body;
-use serde::Deserialize;
 use std::io::Write as _;
 use std::path::{Component, Path, PathBuf};
 use structopt::StructOpt;
@@ -15,9 +14,6 @@ use webbundle::{Bundle, Version};
 
 #[derive(StructOpt, Debug)]
 struct Cli {
-    /// Sets the level of verbosity
-    #[structopt(short = "v", parse(from_occurrences))]
-    verbose: u64,
     /// Uses https
     #[structopt(short = "s", long = "https")]
     https: bool,
@@ -124,11 +120,6 @@ async fn webbundle_reply(base_dir: impl AsRef<Path>) -> Result<Response<Body>> {
         ContentType::from("application/webbundle".parse::<mime::Mime>()?),
         bytes,
     ))
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct WebBundleQuery {
-    render: Option<String>,
 }
 
 async fn static_file_reply(path: impl AsRef<Path>) -> Result<Response<Body>> {
