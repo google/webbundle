@@ -360,8 +360,8 @@ mod tests {
     /// This test uses an external tool, `gen-bundle`.
     /// See https://github.com/WICG/webpackage/go/bundle
     #[ignore]
-    #[tokio::test]
-    async fn decode_bundle_encoded_by_go_gen_bundle() -> Result<()> {
+    #[test]
+    fn decode_bundle_encoded_by_go_gen_bundle() -> Result<()> {
         use std::io::Read;
 
         let base_dir = {

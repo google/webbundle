@@ -18,7 +18,7 @@ use headers::{ContentLength, ContentType, HeaderMapExt as _, HeaderValue};
 use http::StatusCode;
 use std::path::{Path, PathBuf};
 use tokio::fs;
-use tokio::prelude::*;
+use tokio::io::AsyncReadExt;
 use url::Url;
 use walkdir::WalkDir;
 
