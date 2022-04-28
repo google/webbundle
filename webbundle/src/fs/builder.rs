@@ -12,27 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::bundle::{Exchange, Request, Response, Uri};
+use crate::bundle::{Exchange, Response};
 use crate::prelude::*;
 use headers::{ContentLength, ContentType, HeaderMapExt as _, HeaderValue};
 use http::StatusCode;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncReadExt;
-use url::Url;
 use walkdir::WalkDir;
 
 pub(crate) struct ExchangeBuilder {
-    base_url: Url,
     base_dir: PathBuf,
     exchanges: Vec<Exchange>,
 }
 
 impl ExchangeBuilder {
-    pub fn new(base_dir: PathBuf, base_url: Url) -> Self {
+    pub fn new(base_dir: PathBuf) -> Self {
         ExchangeBuilder {
             base_dir,
-            base_url,
             exchanges: Vec::new(),
         }
     }
@@ -75,29 +72,13 @@ impl ExchangeBuilder {
         self.exchanges
     }
 
-    fn url_from_relative_path(&self, relative_path: &Path) -> Result<Uri> {
-        ensure!(
-            relative_path.is_relative(),
-            format!("Path is not relative: {}", relative_path.display())
-        );
-        Ok(self
-            .base_url
-            .join(&relative_path.display().to_string())?
-            .to_string()
-            .parse()?)
-    }
-
-    // fn url_join(&self, relative_url: &str) -> Result<Uri> {
-    //     Ok(self.base_url.join(relative_url)?.to_string().parse()?)
-    // }
-
     pub async fn exchange(
         mut self,
         relative_url: impl AsRef<Path>,
         relative_path: impl AsRef<Path>,
     ) -> Result<Self> {
         self.exchanges.push(Exchange {
-            request: Request::get(self.url_from_relative_path(relative_url.as_ref())?).body(())?,
+            request: relative_url.as_ref().display().to_string().into(),
             response: self.create_response(relative_path).await?,
         });
         Ok(self)
@@ -105,7 +86,7 @@ impl ExchangeBuilder {
 
     fn exchange_redirect(mut self, relative_url: &Path, location: &str) -> Result<Self> {
         self.exchanges.push(Exchange {
-            request: Request::get(self.url_from_relative_path(relative_url)?).body(())?,
+            request: relative_url.display().to_string().into(),
             response: Self::create_redirect(location)?,
         });
         Ok(self)
@@ -129,8 +110,6 @@ impl ExchangeBuilder {
 
         let mut file = fs::File::open(&path).await?;
         let mut body = Vec::new();
-        // TODO: read_buf doesn't consume all.
-        // file.read_buf(&mut body).await?;
         file.read_to_end(&mut body).await?;
 
         let content_length = ContentLength(body.len() as u64);
@@ -147,7 +126,7 @@ impl ExchangeBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bundle::{Bundle, Exchange, Uri, Version};
+    use crate::bundle::{Bundle, Exchange, Version};
     use std::io::Write;
 
     #[tokio::test]
@@ -158,16 +137,13 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(base_dir.clone(), "https://example.com/".parse()?)
+        let exchanges = ExchangeBuilder::new(base_dir.clone())
             .exchange(".", "index.html")
             .await?
             .build();
         assert_eq!(exchanges.len(), 1);
         let exchange = &exchanges[0];
-        assert_eq!(
-            exchange.request.uri(),
-            &"https://example.com/".parse::<Uri>()?
-        );
+        assert_eq!(exchange.request.url, ".");
         assert_eq!(exchange.response.status(), StatusCode::OK);
         assert_eq!(exchange.response.headers()["content-type"], "text/html");
         assert_eq!(
@@ -191,28 +167,25 @@ mod tests {
             path
         };
 
-        let exchanges = ExchangeBuilder::new(base_dir, "https://example.com/".parse()?)
-            .walk()
-            .await?
-            .build();
+        let exchanges = ExchangeBuilder::new(base_dir).walk().await?.build();
         assert_eq!(exchanges.len(), 3);
 
-        let top_dir = find_exchange_by_uri(&exchanges, "https://example.com/")?;
+        let top_dir = find_exchange_by_url(&exchanges, "")?;
         assert_eq!(top_dir.response.status(), StatusCode::OK);
 
-        let index_html = find_exchange_by_uri(&exchanges, "https://example.com/index.html")?;
+        let index_html = find_exchange_by_url(&exchanges, "index.html")?;
         assert_eq!(index_html.response.status(), StatusCode::MOVED_PERMANENTLY);
 
-        let a_js = find_exchange_by_uri(&exchanges, "https://example.com/js/hello.js")?;
+        let a_js = find_exchange_by_url(&exchanges, "js/hello.js")?;
         assert_eq!(a_js.response.status(), StatusCode::OK);
 
         Ok(())
     }
 
-    fn find_exchange_by_uri<'a>(exchanges: &'a [Exchange], uri: &str) -> Result<&'a Exchange> {
+    fn find_exchange_by_url<'a>(exchanges: &'a [Exchange], url: &str) -> Result<&'a Exchange> {
         exchanges
             .iter()
-            .find(|e| e.request.uri() == uri)
+            .find(|e| e.request.url == url)
             .context("not fouond")
     }
 
@@ -230,7 +203,7 @@ mod tests {
 
         let bundle = Bundle::builder()
             .version(Version::VersionB2)
-            .exchanges_from_dir(base_dir, "https://example.com".parse()?)
+            .exchanges_from_dir(base_dir)
             .await?
             .build()?;
 

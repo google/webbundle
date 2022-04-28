@@ -22,9 +22,37 @@ use std::convert::TryFrom;
 use std::io::Write;
 
 pub type Body = Vec<u8>;
-
-pub type Request = http::Request<()>;
 pub type Response = http::Response<Body>;
+pub type HeaderMap = http::header::HeaderMap;
+
+/// Represents a HTTP exchange's request.
+///
+/// This is different from `http::request::Request` because
+/// a resource's URL in Web Bundle can be a relative URL, eg. "./foo.html".
+/// `http::request::Request` requires Uri, which can not be a relative URL.
+#[derive(Debug)]
+pub struct Request {
+    pub url: String,
+    pub headers: HeaderMap,
+}
+
+impl Request {
+    pub fn new(url: String, headers: HeaderMap) -> Request {
+        Request { url, headers }
+    }
+}
+
+impl From<(String, HeaderMap)> for Request {
+    fn from((url, headers): (String, HeaderMap)) -> Self {
+        Self::new(url, headers)
+    }
+}
+
+impl From<String> for Request {
+    fn from(url: String) -> Self {
+        Self::new(url, HeaderMap::new())
+    }
+}
 
 pub const HEADER_MAGIC_BYTES: [u8; 8] = [0xf0, 0x9f, 0x8c, 0x90, 0xf0, 0x9f, 0x93, 0xa6];
 pub(crate) const VERSION_BYTES_LEN: usize = 4;

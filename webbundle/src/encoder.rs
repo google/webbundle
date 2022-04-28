@@ -161,7 +161,7 @@ fn encode_primary_url_section(url: &Uri) -> Result<Vec<u8>> {
 }
 
 struct ResponseLocation {
-    uri: Uri,
+    url: String,
     offset: usize,
     length: usize,
 }
@@ -181,7 +181,7 @@ fn encode_response_section(exchanges: &[Exchange]) -> Result<(Vec<u8>, Vec<Respo
         se.write_bytes(&exchange.response.body())?;
 
         response_locations.push(ResponseLocation {
-            uri: exchange.request.uri().clone(),
+            url: exchange.request.url.clone(),
             offset,
             length: se.count() - offset,
         });
@@ -197,7 +197,7 @@ fn encode_index_section(response_locations: &[ResponseLocation]) -> Result<Vec<u
 
     for response_location in response_locations {
         let mut key = Serializer::new_vec();
-        key.write_text(response_location.uri.to_string())?;
+        key.write_text(&response_location.url)?;
 
         let mut value = Serializer::new_vec();
         value.write_array(Len::Len(2))?;

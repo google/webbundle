@@ -39,7 +39,7 @@
 //!
 //! let bundle = Bundle::builder()
 //!     .version(Version::VersionB2)
-//!     .exchanges_from_dir("assets", "https://example.com".parse()?).await?
+//!     .exchanges_from_dir("assets").await?
 //!     .build()?;
 //! println!("Created bundle: {:#?}", bundle);
 //! let write = std::io::BufWriter::new(std::fs::File::create("example.wbn")?);

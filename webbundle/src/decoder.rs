@@ -270,18 +270,16 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 
         let mut requests = vec![];
         for _ in 0..index_map_len {
-            let uri = self.de.text()?.parse::<Uri>()?;
-            dbg!(&uri);
+            // TODO: support relative URL, which can not be Uri.
+            let url = self.de.text()?;
             ensure!(
                 self.read_array_len()? == 2,
                 "bundle: Failed to decode index item"
             );
             let offset = self.de.unsigned_integer()?;
-            dbg!(offset);
             let length = self.de.unsigned_integer()?;
-            dbg!(length);
             requests.push(RequestEntry {
-                request: Request::get(uri).body(())?,
+                request: url.into(),
                 response_location: ResponseLocation::new(responses_section_offset, offset, length),
             });
         }
@@ -392,13 +390,13 @@ mod tests {
 
         assert_eq!(bundle.version, Version::VersionB2);
         assert_eq!(bundle.exchanges.len(), 3);
-        assert_eq!(bundle.exchanges[0].request.uri(), "https://example.com/");
+        assert_eq!(bundle.exchanges[0].request.url, "https://example.com/");
         assert_eq!(
-            bundle.exchanges[1].request.uri(),
+            bundle.exchanges[1].request.url,
             "https://example.com/index.html"
         );
         assert_eq!(
-            bundle.exchanges[2].request.uri(),
+            bundle.exchanges[2].request.url,
             "https://example.com/js/hello.js"
         );
 

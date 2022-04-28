@@ -19,8 +19,6 @@ use crate::prelude::*;
 use crate::fs::builder::ExchangeBuilder;
 #[cfg(feature = "fs")]
 use std::path::{Path, PathBuf};
-#[cfg(feature = "fs")]
-use url::Url;
 
 /// A Bundle builder.
 #[derive(Default)]
@@ -62,9 +60,6 @@ impl Builder {
 
     /// Append exchanges from files rooted at the given directory.
     ///
-    /// `base_url` will be used as a prefix for each resource. A relative path
-    /// from the given directory to each file is appended to `base_url`.
-    ///
     /// One exchange is created for each file, however, two exchanges
     /// are created for `index.html` file, as follows:
     ///
@@ -79,19 +74,15 @@ impl Builder {
     /// use webbundle::{Bundle, Version};
     /// let bundle = Bundle::builder()
     ///     .version(Version::VersionB2)
-    ///     .exchanges_from_dir("build", "https://example.com".parse()?).await?
+    ///     .exchanges_from_dir("build").await?
     ///     .build()?;
     /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
     /// # };
     /// ```
     #[cfg(feature = "fs")]
-    pub async fn exchanges_from_dir(
-        mut self,
-        dir: impl AsRef<Path>,
-        base_url: Url,
-    ) -> Result<Self> {
+    pub async fn exchanges_from_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
         self.exchanges.append(
-            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()), base_url)
+            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()))
                 .walk()
                 .await?
                 .build(),
