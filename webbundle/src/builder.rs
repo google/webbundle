@@ -58,6 +58,18 @@ impl Builder {
         self
     }
 
+    /// Builds the bundle.
+    pub fn build(self) -> Result<Bundle> {
+        Ok(Bundle {
+            version: self.version.context("no version")?,
+            primary_url: self.primary_url,
+            exchanges: self.exchanges,
+        })
+    }
+}
+
+#[cfg(feature = "fs")]
+impl Builder {
     /// Append exchanges from files rooted at the given directory.
     ///
     /// One exchange is created for each file, however, two exchanges
@@ -79,7 +91,6 @@ impl Builder {
     /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
     /// # };
     /// ```
-    #[cfg(feature = "fs")]
     pub async fn exchanges_from_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
         self.exchanges.append(
             &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()))
@@ -88,15 +99,6 @@ impl Builder {
                 .build(),
         );
         Ok(self)
-    }
-
-    /// Builds the bundle.
-    pub fn build(self) -> Result<Bundle> {
-        Ok(Bundle {
-            version: self.version.context("no version")?,
-            primary_url: self.primary_url,
-            exchanges: self.exchanges,
-        })
     }
 }
 

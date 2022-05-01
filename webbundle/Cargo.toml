@@ -24,3 +24,6 @@ tempfile = "3.3.0"
 
 [features]
 fs = ["headers", "pathdiff", "tokio", "walkdir", "mime_guess"]
+
+[package.metadata."docs.rs"]
+all-features = true
