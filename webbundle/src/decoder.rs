@@ -390,13 +390,13 @@ mod tests {
 
         assert_eq!(bundle.version, Version::VersionB2);
         assert_eq!(bundle.exchanges.len(), 3);
-        assert_eq!(bundle.exchanges[0].request.url, "https://example.com/");
+        assert_eq!(bundle.exchanges[0].request.url(), "https://example.com/");
         assert_eq!(
-            bundle.exchanges[1].request.url,
+            bundle.exchanges[1].request.url(),
             "https://example.com/index.html"
         );
         assert_eq!(
-            bundle.exchanges[2].request.url,
+            bundle.exchanges[2].request.url(),
             "https://example.com/js/hello.js"
         );
 

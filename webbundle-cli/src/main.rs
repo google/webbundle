@@ -20,7 +20,8 @@ use std::io::{BufWriter, Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
 use structopt::clap::arg_enum;
 use structopt::StructOpt;
-use webbundle::{Bundle, Result, Uri, Version};
+use url::Url;
+use webbundle::{Bundle, Result, Version};
 
 #[derive(StructOpt)]
 struct Cli {
@@ -39,11 +40,9 @@ arg_enum! {
 
 #[derive(StructOpt)]
 enum Command {
-    /// Example: webbundle create -b "https://example.com/" -p "https://example.com/foo/index.html" example.wbn foo
+    /// Example: webbundle create example.wbn foo
     #[structopt(name = "create")]
     Create {
-        #[structopt(short = "b", long = "base-url")]
-        base_url: String,
         #[structopt(short = "p", long = "primary-url")]
         primary_url: Option<String>,
         /// File name
@@ -98,7 +97,7 @@ fn list_plain(bundle: &Bundle) {
         let response = &exchange.response;
         println!(
             "{} {} {} bytes",
-            request.uri(),
+            request.url(),
             response.status(),
             response.body().len()
         );
@@ -145,7 +144,7 @@ fn list_json(bundle: &Bundle) {
             .iter()
             .map(|exchange| Exchange {
                 request: Request {
-                    uri: exchange.request.uri().to_string(),
+                    uri: exchange.request.url().to_string(),
                 },
                 response: Response {
                     status: exchange.response.status().as_u16(),
@@ -179,51 +178,52 @@ fn make_url_path_relative(path: impl AsRef<Path>) -> PathBuf {
         })
 }
 
-fn url_to_path(uri: &Uri) -> PathBuf {
+fn url_to_path(url: &str) -> Result<PathBuf> {
+    let url = "https://example.com/".parse::<Url>().unwrap().join(url)?;
+
     let mut path = PathBuf::new();
-    if let Some(scheme) = uri.scheme_str() {
-        path.push(scheme);
-    }
-    if let Some(host) = uri.host() {
+    path.push(url.scheme());
+    if let Some(host) = url.host_str() {
         path.push(host);
     }
-    if let Some(port) = uri.port() {
+    if let Some(port) = url.port() {
         path.push(port.to_string());
     }
-    let relative = make_url_path_relative(uri.path());
+    let relative = make_url_path_relative(url.path());
     // We push `relative` here even if it is empty.
     // That makes sure path ends with "/".
     path.push(relative);
     // TODO: Push query
-    path
+    Ok(path)
 }
 
 #[test]
 fn url_to_path_test() -> Result<()> {
     assert_eq!(
-        url_to_path(&"https://example.com/".parse()?),
+        url_to_path("https://example.com")?,
         Path::new("https/example.com/")
     );
     assert_eq!(
-        url_to_path(&"https://example.com".parse()?),
-        Path::new("https/example.com/")
-    );
-    assert_eq!(
-        url_to_path(&"https://example.com/index.html".parse()?),
+        url_to_path("https://example.com/index.html")?,
         Path::new("https/example.com/index.html")
     );
     assert_eq!(
-        url_to_path(&"https://example.com/a/".parse()?),
+        url_to_path("https://example.com/a/")?,
         Path::new("https/example.com/a/")
     );
     assert_eq!(
-        url_to_path(&"https://example.com/a/b".parse()?),
+        url_to_path("https://example.com/a/b")?,
         Path::new("https/example.com/a/b")
     );
     assert_eq!(
-        url_to_path(&"https://example.com/a/b/".parse()?),
+        url_to_path("https://example.com/a/b/")?,
         Path::new("https/example.com/a/b/")
     );
+    assert_eq!(url_to_path("")?, Path::new("https/example.com/"));
+    assert_eq!(url_to_path(".")?, Path::new("https/example.com/"));
+    assert_eq!(url_to_path("/a")?, Path::new("https/example.com/a"));
+    assert_eq!(url_to_path("..")?, Path::new("https/example.com/"));
+    assert_eq!(url_to_path("a/../../b")?, Path::new("https/example.com/b"));
     Ok(())
 }
 
@@ -231,13 +231,13 @@ fn extract(bundle: &Bundle) -> Result<()> {
     // TODO: Avoid the conflict of file names.
     // The current approach is too naive.
     for exchange in bundle.exchanges() {
-        let path = url_to_path(exchange.request.uri());
+        let path = url_to_path(exchange.request.url())?;
         ensure!(
             path.is_relative(),
             format!("path shoould be relative: {}", path.display())
         );
         if !exchange.response.status().is_success() {
-            log::info!("Skipping: {:?}", exchange.request.uri());
+            log::info!("Skipping: {:?}", exchange.request.url());
             continue;
         }
         // TODO: "/" should be path::sep in windows?
@@ -249,13 +249,13 @@ fn extract(bundle: &Bundle) -> Result<()> {
             let index_html = path.join("index.html");
             log::info!(
                 "extract: {} => {}",
-                exchange.request.uri(),
+                exchange.request.url(),
                 index_html.display()
             );
             let mut write = BufWriter::new(File::create(&index_html)?);
             write.write_all(exchange.response.body())?;
         } else {
-            log::info!("extract: {} => {}", exchange.request.uri(), path.display());
+            log::info!("extract: {} => {}", exchange.request.url(), path.display());
             let parent = path.parent().context("weired url")?;
             if !parent.exists() {
                 std::fs::create_dir_all(parent)?;
@@ -273,14 +273,13 @@ async fn main() -> Result<()> {
     let args = Cli::from_args();
     match args.cmd {
         Command::Create {
-            base_url,
             primary_url,
             file,
             resources_dir,
         } => {
             let mut builder = Bundle::builder()
                 .version(Version::VersionB2)
-                .exchanges_from_dir(resources_dir, base_url.parse()?)
+                .exchanges_from_dir(resources_dir)
                 .await?;
             if let Some(primary_url) = primary_url {
                 builder = builder.primary_url(primary_url.parse()?);

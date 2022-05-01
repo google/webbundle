@@ -8,7 +8,6 @@ use http::{Request, Response, StatusCode};
 use structopt::StructOpt;
 use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use url::Url;
 use webbundle::{Bundle, Version};
 
 #[derive(StructOpt, Debug)]
@@ -82,14 +81,9 @@ async fn webbundle_serve_internal(req: Request<Body>) -> anyhow::Result<Response
     }
     anyhow::ensure!(is_dir(&full_path).await, "Not found");
 
-    // TODO: Use relative URL when a relative URL is supported in upstream.
-    let base_url: Url = "https://example.com/"
-        .parse::<Url>()?
-        .join(full_path.to_str().unwrap_or(""))?;
-
     let bundle = Bundle::builder()
         .version(Version::VersionB2)
-        .exchanges_from_dir(full_path, base_url)
+        .exchanges_from_dir(full_path)
         .await?
         .build()?;
     let bytes = bundle.encode()?;

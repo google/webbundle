@@ -143,7 +143,7 @@ mod tests {
             .build();
         assert_eq!(exchanges.len(), 1);
         let exchange = &exchanges[0];
-        assert_eq!(exchange.request.url, ".");
+        assert_eq!(exchange.request.url(), ".");
         assert_eq!(exchange.response.status(), StatusCode::OK);
         assert_eq!(exchange.response.headers()["content-type"], "text/html");
         assert_eq!(
@@ -185,7 +185,7 @@ mod tests {
     fn find_exchange_by_url<'a>(exchanges: &'a [Exchange], url: &str) -> Result<&'a Exchange> {
         exchanges
             .iter()
-            .find(|e| e.request.url == url)
+            .find(|e| e.request.url() == url)
             .context("not fouond")
     }
 

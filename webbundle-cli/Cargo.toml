@@ -18,6 +18,7 @@ serde_json = "1.0"
 webbundle = { path = "../webbundle", version = "^0.2.0", features = ["fs"] }
 tokio = { version = "0.2", features = ["macros"] }
 anyhow = "1.0.26"
+url = "2.2.2"
 
 [[bin]]
 name = "webbundle"

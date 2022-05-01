@@ -32,13 +32,24 @@ pub type HeaderMap = http::header::HeaderMap;
 /// `http::request::Request` requires Uri, which can not be a relative URL.
 #[derive(Debug)]
 pub struct Request {
-    pub url: String,
-    pub headers: HeaderMap,
+    url: String,
+    headers: HeaderMap,
 }
 
 impl Request {
+    /// Creates a new `Request` with the given url and headers.
     pub fn new(url: String, headers: HeaderMap) -> Request {
         Request { url, headers }
+    }
+
+    /// Returns a reference to the associated url.
+    pub fn url(&self) -> &String {
+        &self.url
+    }
+
+    /// Returns a reference to the associated header field map.
+    pub fn headers(&self) -> &HeaderMap {
+        &self.headers
     }
 }
 

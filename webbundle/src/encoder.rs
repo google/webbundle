@@ -181,7 +181,7 @@ fn encode_response_section(exchanges: &[Exchange]) -> Result<(Vec<u8>, Vec<Respo
         se.write_bytes(&exchange.response.body())?;
 
         response_locations.push(ResponseLocation {
-            url: exchange.request.url.clone(),
+            url: exchange.request.url().clone(),
             offset,
             length: se.count() - offset,
         });

@@ -9,7 +9,6 @@ repository = "https://github.com/google/webbundle"
 version = "0.2.0"
 
 [dependencies]
-url = "2.2.2"
 anyhow = "1.0.52"
 log = "0.4.14"
 cbor_event = "2.1.3"
