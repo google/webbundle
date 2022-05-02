@@ -78,7 +78,7 @@ impl ExchangeBuilder {
         relative_path: impl AsRef<Path>,
     ) -> Result<Self> {
         self.exchanges.push(Exchange {
-            request: relative_url.as_ref().display().to_string().into(),
+            request: relative_url.as_ref().into(),
             response: self.create_response(relative_path).await?,
         });
         Ok(self)

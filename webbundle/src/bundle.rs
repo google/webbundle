@@ -20,6 +20,7 @@ pub use http::Uri;
 
 use std::convert::TryFrom;
 use std::io::Write;
+use std::path::Path;
 
 pub type Body = Vec<u8>;
 pub type Response = http::Response<Body>;
@@ -61,6 +62,20 @@ impl From<(String, HeaderMap)> for Request {
 
 impl From<String> for Request {
     fn from(url: String) -> Self {
+        Self::new(url, HeaderMap::new())
+    }
+}
+
+// TODO: Use TryFrom?
+impl From<&Path> for Request {
+    fn from(path: &Path) -> Self {
+        // path.display().to_string() can't be used because
+        // that may contain a backslash, `\\`, in Windows.
+        let url = path
+            .iter()
+            .map(|s| s.to_str().unwrap())
+            .collect::<Vec<_>>()
+            .join("/");
         Self::new(url, HeaderMap::new())
     }
 }
@@ -149,5 +164,22 @@ impl<'a> TryFrom<&'a [u8]> for Bundle {
 
     fn try_from(bytes: &'a [u8]) -> Result<Self, Self::Error> {
         Bundle::from_bytes(bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn request_from_path() {
+        let path = Path::new("foo/bar");
+        let request: Request = path.into();
+        assert_eq!(request.url(), "foo/bar");
+
+        let path_str = format!("foo{}bar", std::path::MAIN_SEPARATOR);
+        let path = Path::new(&path_str);
+        let request: Request = path.into();
+        assert_eq!(request.url(), "foo/bar");
     }
 }
