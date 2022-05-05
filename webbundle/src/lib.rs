@@ -57,4 +57,4 @@ pub use bundle::{Body, Bundle, Exchange, Request, Response, Uri, Version};
 pub use prelude::Result;
 
 #[cfg(feature = "fs")]
-pub mod fs;
+mod fs;

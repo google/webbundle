@@ -15,18 +15,13 @@
 use crate::bundle::{Bundle, Exchange, Uri, Version};
 use crate::prelude::*;
 
-#[cfg(feature = "fs")]
-use crate::fs::builder::ExchangeBuilder;
-#[cfg(feature = "fs")]
-use std::path::{Path, PathBuf};
-
 /// A Bundle builder.
 #[derive(Default)]
 pub struct Builder {
     version: Option<Version>,
     primary_url: Option<Uri>,
     manifest: Option<Uri>,
-    exchanges: Vec<Exchange>,
+    pub(crate) exchanges: Vec<Exchange>,
 }
 
 impl Builder {
@@ -65,40 +60,6 @@ impl Builder {
             primary_url: self.primary_url,
             exchanges: self.exchanges,
         })
-    }
-}
-
-#[cfg(feature = "fs")]
-impl Builder {
-    /// Append exchanges from files rooted at the given directory.
-    ///
-    /// One exchange is created for each file, however, two exchanges
-    /// are created for `index.html` file, as follows:
-    ///
-    /// 1. The pareent directory **serves** the contents of `index.html` file.
-    /// 2. The URL for `index.html` file is a redirect to the parent directory
-    ///    (`301` MOVED PERMANENTLY).
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # async {
-    /// use webbundle::{Bundle, Version};
-    /// let bundle = Bundle::builder()
-    ///     .version(Version::VersionB2)
-    ///     .exchanges_from_dir("build").await?
-    ///     .build()?;
-    /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
-    /// # };
-    /// ```
-    pub async fn exchanges_from_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
-        self.exchanges.append(
-            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()))
-                .walk()
-                .await?
-                .build(),
-        );
-        Ok(self)
     }
 }
 

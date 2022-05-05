@@ -21,6 +21,39 @@ use tokio::fs;
 use tokio::io::AsyncReadExt;
 use walkdir::WalkDir;
 
+impl crate::builder::Builder {
+    /// Append exchanges from files rooted at the given directory.
+    ///
+    /// One exchange is created for each file, however, two exchanges
+    /// are created for `index.html` file, as follows:
+    ///
+    /// 1. The pareent directory **serves** the contents of `index.html` file.
+    /// 2. The URL for `index.html` file is a redirect to the parent directory
+    ///    (`301` MOVED PERMANENTLY).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async {
+    /// use webbundle::{Bundle, Version};
+    /// let bundle = Bundle::builder()
+    ///     .version(Version::VersionB2)
+    ///     .exchanges_from_dir("build").await?
+    ///     .build()?;
+    /// # std::result::Result::Ok::<_, anyhow::Error>(bundle)
+    /// # };
+    /// ```
+    pub async fn exchanges_from_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
+        self.exchanges.append(
+            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()))
+                .walk()
+                .await?
+                .build(),
+        );
+        Ok(self)
+    }
+}
+
 pub(crate) struct ExchangeBuilder {
     base_dir: PathBuf,
     exchanges: Vec<Exchange>,
