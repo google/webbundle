@@ -6,7 +6,7 @@ license = "Apache-2.0"
 name = "webbundle"
 readme = "../README.md"
 repository = "https://github.com/google/webbundle"
-version = "0.3.0"
+version = "0.3.1"
 
 [dependencies]
 anyhow = "1.0.52"
