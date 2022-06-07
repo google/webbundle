@@ -1,0 +1,18 @@
+<html>
+  <meta charset="utf-8" />
+  <head>
+    <title>MODULE BENCHMARKS</title>
+  </head>
+  <body>
+    <h1>Module Loading Benchmarks</h1>
+    <h2>Info</h2>
+    {{ info }}
+
+    <h2>Variants</h2>
+    <ul>
+      {% for benchmark in benchmarks -%}
+      <li><a href="{{ benchmark }}.html">{{ benchmark }}</a></li>
+      {% endfor -%}
+    </ul>
+  </body>
+</html>

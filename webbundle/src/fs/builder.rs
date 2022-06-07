@@ -14,7 +14,7 @@
 
 use crate::bundle::{Exchange, Response};
 use crate::prelude::*;
-use headers::{ContentLength, ContentType, HeaderMapExt as _, HeaderValue};
+use headers::{ContentType, HeaderValue};
 use http::StatusCode;
 use std::path::{Path, PathBuf};
 use tokio::fs;
@@ -110,10 +110,14 @@ impl ExchangeBuilder {
         relative_url: impl AsRef<Path>,
         relative_path: impl AsRef<Path>,
     ) -> Result<Self> {
-        self.exchanges.push(Exchange {
-            request: relative_url.as_ref().into(),
-            response: self.create_response(relative_path).await?,
-        });
+        self.exchanges.push(
+            (
+                relative_url.as_ref(),
+                self.read_file(&relative_path).await?,
+                ContentType::from(mime_guess::from_path(&relative_path).first_or_octet_stream()),
+            )
+                .into(),
+        );
         Ok(self)
     }
 
@@ -134,7 +138,7 @@ impl ExchangeBuilder {
         Ok(response)
     }
 
-    async fn create_response(&self, relative_path: impl AsRef<Path>) -> Result<Response> {
+    async fn read_file(&self, relative_path: impl AsRef<Path>) -> Result<Vec<u8>> {
         ensure!(
             relative_path.as_ref().is_relative(),
             format!("Path is not relative: {}", relative_path.as_ref().display())
@@ -144,15 +148,7 @@ impl ExchangeBuilder {
         let mut file = fs::File::open(&path).await?;
         let mut body = Vec::new();
         file.read_to_end(&mut body).await?;
-
-        let content_length = ContentLength(body.len() as u64);
-        let content_type = ContentType::from(mime_guess::from_path(&path).first_or_octet_stream());
-
-        let mut response = Response::new(body);
-        *response.status_mut() = StatusCode::OK;
-        response.headers_mut().typed_insert(content_length);
-        response.headers_mut().typed_insert(content_type);
-        Ok(response)
+        Ok(body)
     }
 }
 

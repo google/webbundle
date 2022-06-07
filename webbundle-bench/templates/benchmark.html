@@ -1,0 +1,47 @@
+<html>
+  <meta charset="utf-8" />
+  <head>
+    <title>MODULE BENCHMARK</title>
+    {{ headers|safe}}
+  </head>
+  <body>
+    <h1>Module Loading Benchmark</h1>
+    <h2>Info</h2>
+
+    {{ info }}
+
+    <h2>Results</h2>
+    <pre id="log"></pre>
+
+    {% for module in modules -%}
+    <script type="module" src="{{module}}"></script>
+    {% endfor -%}
+
+    <script type="module">
+      performance.mark("importStart");
+      import("./{{ start_module }}").then((mod) => {
+        performance.mark("importEnd");
+        performance.measure("importMeasure", "importStart", "importEnd");
+
+        performance.mark("evalStart");
+        const res = mod.{{ start_func}}();
+        performance.mark("evalEnd");
+        performance.measure("evalMeasure", "evalStart", "evalEnd");
+
+        const results = {
+          res,
+          navigationResponseStart:
+            performance.getEntriesByType("navigation")[0].responseStart,
+          importStart: performance.getEntriesByName("importStart")[0].startTime,
+          importEnd: performance.getEntriesByName("importEnd")[0].startTime,
+          importDuration:
+            performance.getEntriesByName("importMeasure")[0].duration,
+          evalStart: performance.getEntriesByName("evalStart")[0].startTime,
+          evalEnd: performance.getEntriesByName("evalEnd")[0].startTime,
+          evalDuration: performance.getEntriesByName("evalMeasure")[0].duration,
+        };
+        document.getElementById("log").innerText = JSON.stringify(results);
+      });
+    </script>
+  </body>
+</html>

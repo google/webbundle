@@ -16,7 +16,10 @@ use crate::builder::Builder;
 use crate::decoder;
 use crate::encoder;
 use crate::prelude::*;
+use http::StatusCode;
 pub use http::Uri;
+
+use headers::{ContentLength, ContentType, HeaderMapExt as _};
 
 use std::convert::TryFrom;
 use std::io::Write;
@@ -112,6 +115,36 @@ impl Version {
 pub struct Exchange {
     pub request: Request,
     pub response: Response,
+}
+
+impl<T> From<(T, Vec<u8>, ContentType)> for Exchange
+where
+    T: Into<Request>,
+{
+    fn from((request, body, content_type): (T, Vec<u8>, ContentType)) -> Self {
+        let request: Request = request.into();
+        let response = {
+            let content_length = ContentLength(body.len() as u64);
+            let mut response = Response::new(body);
+            *response.status_mut() = StatusCode::OK;
+            response.headers_mut().typed_insert(content_length);
+            response.headers_mut().typed_insert(content_type);
+            response
+        };
+        Exchange { request, response }
+    }
+}
+
+impl<T> From<(T, Vec<u8>)> for Exchange
+where
+    T: Into<Request>,
+{
+    fn from((request, body): (T, Vec<u8>)) -> Self {
+        let request: Request = request.into();
+        let content_type =
+            ContentType::from(mime_guess::from_path(&request.url).first_or_octet_stream());
+        (request, body, content_type).into()
+    }
 }
 
 /// Represents a WebBundle.
