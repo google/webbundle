@@ -7,6 +7,7 @@ use axum::{
 use axum_extra::middleware::{self, Next};
 use headers::{ContentLength, HeaderMapExt as _};
 use http::{header, HeaderValue, Request, Response, StatusCode};
+use std::fmt::Write as _;
 use structopt::StructOpt;
 use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
@@ -174,10 +175,11 @@ async fn directory_list_files(
             p.file_name().unwrap().to_str().unwrap(),
             if is_dir(&p).await { "/" } else { "" }
         );
-        contents.push_str(&format!(
+        write!(
+            contents,
             "<li><a href={link}>{link}</a></li>",
             link = link_name
-        ));
+        )?;
     }
 
     let inline_style = r#"
