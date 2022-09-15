@@ -191,7 +191,7 @@ impl Benchmark {
 
     fn build_webbundle_html(&self, option: &Cli) -> Result<()> {
         let t = BenchmarkTemplate {
-            headers: r#"<script type="webbundle"> {{ "source": "webbundle.wbn", "scopes": ["."] }} </script>"#.to_string(),
+            headers: r#"<script type="webbundle"> { "source": "webbundle.wbn", "scopes": ["."] } </script>"#.to_string(),
             info: format!("option: {option:#?}"),
             modules: vec![],
             start_module: self.start_module.full_path(),
