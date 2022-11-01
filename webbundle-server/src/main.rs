@@ -64,15 +64,22 @@ async fn main() {
 }
 
 async fn webbundle_serve(req: Request<Body>) -> Result<Response<BoxBody>, (StatusCode, String)> {
-    webbundle_serve_internal(req).await.map_err(|err| {
-        (
+    match webbundle_serve_internal(req).await {
+        Ok(WebBundleServeResponse::Body(body)) => Ok(body),
+        Ok(WebBundleServeResponse::NotFound) => Err((StatusCode::NOT_FOUND, "".to_string())),
+        Err(err) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Unhandled internal error {}", err),
-        )
-    })
+        )),
+    }
 }
 
-async fn webbundle_serve_internal(req: Request<Body>) -> anyhow::Result<Response<BoxBody>> {
+enum WebBundleServeResponse {
+    Body(Response<BoxBody>),
+    NotFound,
+}
+
+async fn webbundle_serve_internal(req: Request<Body>) -> anyhow::Result<WebBundleServeResponse> {
     let path = req.uri().path();
     let mut full_path = std::path::PathBuf::from(".");
     for seg in path.trim_start_matches('/').split('/') {
@@ -82,7 +89,9 @@ async fn webbundle_serve_internal(req: Request<Body>) -> anyhow::Result<Response
         );
         full_path.push(seg);
     }
-    anyhow::ensure!(is_dir(&full_path).await, "Not found");
+    if !is_dir(&full_path).await {
+        return Ok(WebBundleServeResponse::NotFound);
+    }
 
     let bundle = Bundle::builder()
         .version(Version::VersionB2)
@@ -95,7 +104,7 @@ async fn webbundle_serve_internal(req: Request<Body>) -> anyhow::Result<Response
     let mut response = Response::new(boxed(Body::from(bytes)));
     response.headers_mut().typed_insert(content_length);
     set_response_webbundle_headers(&mut response);
-    Ok(response)
+    Ok(WebBundleServeResponse::Body(response))
 }
 
 fn set_response_webbundle_headers(response: &mut Response<BoxBody>) {
