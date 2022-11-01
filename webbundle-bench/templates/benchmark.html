@@ -10,8 +10,7 @@
 
     {{ info }}
 
-    <h2>Results</h2>
-    <pre id="log"></pre>
+    <h2 id="results">Results</h2>
 
     {% for module in modules -%}
     <script type="module" src="{{module}}"></script>
@@ -40,7 +39,11 @@
           evalEnd: performance.getEntriesByName("evalEnd")[0].startTime,
           evalDuration: performance.getEntriesByName("evalMeasure")[0].duration,
         };
-        document.getElementById("log").innerText = JSON.stringify(results);
+
+        const result = document.createElement("pre");
+        result.id = "result";
+        result.innerText = JSON.stringify(results)
+        document.querySelector("#results").after(result);
       });
     </script>
   </body>
