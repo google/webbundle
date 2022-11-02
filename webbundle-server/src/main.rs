@@ -5,22 +5,22 @@ use axum::{
     Router,
 };
 use axum_extra::middleware::{self, Next};
+use clap::Parser;
 use headers::{ContentLength, HeaderMapExt as _};
 use http::{header, HeaderValue, Request, Response, StatusCode};
 use std::fmt::Write as _;
-use structopt::StructOpt;
 use tower::ServiceBuilder;
 use tower_http::{services::ServeDir, trace::TraceLayer};
 use webbundle::{Bundle, Version};
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct Cli {
     // TODO: Support https.
-    // #[structopt(long = "https")]
+    // #[arg]
     // https: bool,
-    #[structopt(short = "p", long = "port", default_value = "8000")]
+    #[arg(short, long, default_value = "8000")]
     port: u16,
-    #[structopt(long = "bind-all")]
+    #[arg(long)]
     /// Bind all interfaces (default: only localhost - "127.0.0.1"),
     bind_all: bool,
 }
@@ -32,7 +32,7 @@ async fn main() {
         std::env::set_var("RUST_LOG", "my_http_server=debug,tower_http=debug")
     }
     tracing_subscriber::fmt::init();
-    let args = Cli::from_args();
+    let args = Cli::parse();
 
     let app = Router::new()
         .nest("/wbn", get(webbundle_serve))

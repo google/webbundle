@@ -2,18 +2,18 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result;
 use askama::Template;
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 struct Cli {
     /// The output directory
-    #[structopt(short = "o", long = "out", default_value = "out")]
+    #[arg(short = 'o', long, default_value = "out")]
     out: String,
     /// The module tree depth
-    #[structopt(short = "d", long = "depth", default_value = "4")]
+    #[arg(short = 'd', long, default_value = "4")]
     depth: u32,
     /// The module tree width at each level
-    #[structopt(short = "b", long = "branches", default_value = "4")]
+    #[arg(short = 'b', long, default_value = "4")]
     branches: u32,
 }
 
@@ -243,7 +243,7 @@ struct IndexTemplate {
 
 fn main() -> Result<()> {
     env_logger::init();
-    let args = Cli::from_args();
+    let args = Cli::parse();
     let benchmark = Benchmark::new(&args);
     benchmark.build(&args)
 }

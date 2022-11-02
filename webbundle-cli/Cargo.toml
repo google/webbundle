@@ -9,7 +9,7 @@ repository = "https://github.com/google/webbundle"
 version = "0.3.2"
 
 [dependencies]
-structopt = "0.3.26"
+clap = { version = "4", features = ["derive"] }
 env_logger = "0.9.0"
 log = "0.4.17"
 chrono = "0.4.19"

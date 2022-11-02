@@ -14,36 +14,32 @@
 
 use anyhow::{ensure, Context as _};
 use chrono::Local;
+use clap::Parser;
 use serde::Serialize;
 use std::fs::File;
 use std::io::{BufWriter, Read as _, Write as _};
 use std::path::{Component, Path, PathBuf};
-use structopt::clap::arg_enum;
-use structopt::StructOpt;
 use url::Url;
 use webbundle::{Bundle, Result, Version};
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Cli {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     cmd: Command,
 }
 
-arg_enum! {
-    #[allow(non_camel_case_types)]
-    pub enum Format {
-        plain,
-        json,
-        debug,
-    }
+#[derive(Parser, Clone, clap::ValueEnum)]
+enum Format {
+    Plain,
+    Json,
+    Debug,
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 enum Command {
     /// Example: webbundle create example.wbn foo
-    #[structopt(name = "create")]
     Create {
-        #[structopt(short = "p", long = "primary-url")]
+        #[arg(short = 'p', long)]
         primary_url: Option<String>,
         /// File name
         file: String,
@@ -52,14 +48,12 @@ enum Command {
         // TODO: Support version
     },
     /// List the contents briefly
-    #[structopt(name = "list")]
     List {
         file: String,
-        #[structopt(long = "format", possible_values(&Format::variants()))]
+        #[arg(long, value_enum)]
         format: Option<Format>,
     },
     /// Extract the contents
-    #[structopt(name = "extract")]
     Extract { file: String },
 }
 
@@ -82,9 +76,9 @@ fn env_logger_init() {
 
 fn list(bundle: &Bundle, format: Option<Format>) {
     match format {
-        None | Some(Format::plain) => list_plain(bundle),
-        Some(Format::json) => list_json(bundle),
-        Some(Format::debug) => list_debug(bundle),
+        None | Some(Format::Plain) => list_plain(bundle),
+        Some(Format::Json) => list_json(bundle),
+        Some(Format::Debug) => list_debug(bundle),
     }
 }
 
@@ -270,7 +264,7 @@ fn extract(bundle: &Bundle) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger_init();
-    let args = Cli::from_args();
+    let args = Cli::parse();
     match args.cmd {
         Command::Create {
             primary_url,
