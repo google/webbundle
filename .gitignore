@@ -2,3 +2,5 @@
 /target
 /webbundle-bench/out
 **/*.rs.bk
+/webbundle/benches/bundle-large/
+/webbundle/benches/bundle-small/

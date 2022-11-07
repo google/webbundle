@@ -21,9 +21,14 @@ mime_guess = { version = "2.0.3" }
 
 [dev-dependencies]
 tempfile = "3.3.0"
+criterion = { version = "0.4", features = ["html_reports", "async_tokio"] }
 
 [features]
 fs = ["pathdiff", "tokio", "walkdir"]
 
 [package.metadata."docs.rs"]
 all-features = true
+
+[[bench]]
+name = "fs-build-bench"
+harness = false

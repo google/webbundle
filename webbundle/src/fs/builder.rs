@@ -52,6 +52,16 @@ impl crate::builder::Builder {
         );
         Ok(self)
     }
+
+    /// Sync version of `exchanges_from_dir`.
+    pub fn exchanges_from_dir_sync(mut self, dir: impl AsRef<Path>) -> Result<Self> {
+        self.exchanges.append(
+            &mut ExchangeBuilder::new(PathBuf::from(dir.as_ref()))
+                .walk_sync()?
+                .build(),
+        );
+        Ok(self)
+    }
 }
 
 pub(crate) struct ExchangeBuilder {
@@ -59,6 +69,7 @@ pub(crate) struct ExchangeBuilder {
     exchanges: Vec<Exchange>,
 }
 
+// TODO: Refactor so that async and sync variants share more code.
 impl ExchangeBuilder {
     pub fn new(base_dir: PathBuf) -> Self {
         ExchangeBuilder {
@@ -101,6 +112,39 @@ impl ExchangeBuilder {
         Ok(self)
     }
 
+    pub fn walk_sync(mut self) -> Result<Self> {
+        for entry in WalkDir::new(&self.base_dir) {
+            let entry = entry?;
+            log::debug!("visit: {:?}", entry);
+            let file_type = entry.file_type();
+            if file_type.is_symlink() {
+                log::warn!(
+                    "path is symbolink link. Skipping. {}",
+                    entry.path().display()
+                );
+                continue;
+            }
+            if !file_type.is_file() {
+                continue;
+            }
+            if entry.path().file_name().unwrap() == "index.html" {
+                let dir = entry.path().parent().unwrap();
+
+                let relative_url = pathdiff::diff_paths(dir, &self.base_dir).unwrap();
+                let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
+                // for <dir> -> Serves the contents of <dir>/index.html
+                self = self.exchange_sync(&relative_url, &relative_path)?;
+
+                // for <dir>/index.html -> redirect to "./"
+                self = self.exchange_redirect(&relative_path, "./")?;
+            } else {
+                let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
+                self = self.exchange_sync(&relative_path, &relative_path)?;
+            }
+        }
+        Ok(self)
+    }
+
     pub fn build(self) -> Vec<Exchange> {
         self.exchanges
     }
@@ -114,6 +158,22 @@ impl ExchangeBuilder {
             (
                 relative_url.as_ref(),
                 self.read_file(&relative_path).await?,
+                ContentType::from(mime_guess::from_path(&relative_path).first_or_octet_stream()),
+            )
+                .into(),
+        );
+        Ok(self)
+    }
+
+    pub fn exchange_sync(
+        mut self,
+        relative_url: impl AsRef<Path>,
+        relative_path: impl AsRef<Path>,
+    ) -> Result<Self> {
+        self.exchanges.push(
+            (
+                relative_url.as_ref(),
+                self.read_file_sync(&relative_path)?,
                 ContentType::from(mime_guess::from_path(&relative_path).first_or_octet_stream()),
             )
                 .into(),
@@ -148,6 +208,21 @@ impl ExchangeBuilder {
         let mut file = fs::File::open(&path).await?;
         let mut body = Vec::new();
         file.read_to_end(&mut body).await?;
+        Ok(body)
+    }
+
+    fn read_file_sync(&self, relative_path: impl AsRef<Path>) -> Result<Vec<u8>> {
+        use std::io::Read;
+
+        ensure!(
+            relative_path.as_ref().is_relative(),
+            format!("Path is not relative: {}", relative_path.as_ref().display())
+        );
+        let path = self.base_dir.join(relative_path);
+
+        let mut file = std::fs::File::open(&path)?;
+        let mut body = Vec::new();
+        file.read_to_end(&mut body)?;
         Ok(body)
     }
 }
