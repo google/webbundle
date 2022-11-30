@@ -14,4 +14,4 @@ askama = "0.11.1"
 clap = { version = "4", features = ["derive"] }
 env_logger = "0.9.0"
 log = "0.4.17"
-webbundle = { path = "../webbundle", version = "^0.4.0" }
+webbundle = { path = "../webbundle", version = "^0.4.1" }
