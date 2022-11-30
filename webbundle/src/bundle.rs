@@ -34,7 +34,7 @@ pub type HeaderMap = http::header::HeaderMap;
 /// This is different from `http::request::Request` because
 /// a resource's URL in Web Bundle can be a relative URL, eg. "./foo.html".
 /// `http::request::Request` requires Uri, which can not be a relative URL.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Request {
     url: String,
     headers: HeaderMap,
@@ -115,6 +115,20 @@ impl Version {
 pub struct Exchange {
     pub request: Request,
     pub response: Response,
+}
+
+impl Clone for Exchange {
+    fn clone(&self) -> Self {
+        Exchange {
+            request: self.request.clone(),
+            response: {
+                let mut response = Response::new(self.response.body().clone());
+                *response.status_mut() = self.response.status();
+                *response.headers_mut() = self.response.headers().clone();
+                response
+            },
+        }
+    }
 }
 
 impl<T> From<(T, Vec<u8>, ContentType)> for Exchange

@@ -1,7 +1,8 @@
+<!DOCTYPE html>
 <html>
   <meta charset="utf-8" />
   <head>
-    <title>MODULE BENCHMARK</title>
+    <title>webbundle-bench</title>
     {{ headers|safe}}
   </head>
   <body>
@@ -11,6 +12,11 @@
     {{ info }}
 
     <h2 id="results">Results</h2>
+
+    {% for link in next_links -%}
+    <li><a href="{{ link }}">{{ link }}</a></li>
+    {% endfor -%}
+
 
     {% for module in modules -%}
     <script type="module" src="{{module}}"></script>

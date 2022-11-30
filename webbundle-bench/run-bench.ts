@@ -24,12 +24,6 @@ const browser = await puppeteer.launch(launch_options);
 
 const port = args.port ?? 8080;
 
-for (const name of ["unbundled", "webbundle"]) {
-  await run(`${name}`, browser, `http://localhost:${port}/out/${name}.html`);
-}
-
-browser.close();
-
 async function run(name: string, browser: Browser, url: string) {
   console.log(`running ${name} - ${url}`);
   const page = await browser.newPage();
@@ -45,3 +39,12 @@ async function run(name: string, browser: Browser, url: string) {
     name + ": " + (results.importEnd - results.navigationResponseStart),
   );
 }
+
+for (const name of ["unbundled", "webbundle"]) {
+  await run(`${name}`, browser, `http://localhost:${port}/${name}.html`);
+}
+
+await browser.close();
+
+// [2022-11-16 Wed] deno doesn't finish. Call exit explicitly.
+Deno.exit(0);

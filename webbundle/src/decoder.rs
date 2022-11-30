@@ -211,7 +211,7 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 
         let responses_section_offset = section_offsets.last().unwrap().offset;
 
-        dbg!(responses_section_offset);
+        // dbg!(responses_section_offset);
 
         let mut requests = vec![];
         let mut primary_url: Option<PrimaryUrl> = None;
@@ -231,15 +231,15 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             // TODO: Support ignoredSections
             match name.as_ref() {
                 "index" => {
-                    dbg!(name);
+                    // dbg!(name);
                     requests = section_decoder.read_index(responses_section_offset)?;
                 }
                 "responses" => {
-                    dbg!(name);
+                    // dbg!(name);
                     // Skip responses section becuase we read responses later.
                 }
                 "primary-url" => {
-                    dbg!(name);
+                    // dbg!(name);
                     primary_url = Some(section_decoder.read_primary_url()?);
                 }
                 _ => {
@@ -266,7 +266,7 @@ impl<T: AsRef<[u8]>> Decoder<T> {
                 bail!("bundle: Failed to decode index section map header");
             }
         };
-        dbg!(index_map_len);
+        // dbg!(index_map_len);
 
         let mut requests = vec![];
         for _ in 0..index_map_len {
