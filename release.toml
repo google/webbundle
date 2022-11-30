@@ -1,3 +1,0 @@
-dev-version = false
-pre-release-commit-message = "Release {{crate_name}} v{{version}}"
-dependent-version = "upgrade"
