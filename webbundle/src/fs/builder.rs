@@ -231,7 +231,6 @@ impl ExchangeBuilder {
 mod tests {
     use super::*;
     use crate::bundle::{Bundle, Exchange, Version};
-    use std::io::Write;
 
     #[tokio::test]
     async fn exchange_builder() -> Result<()> {
@@ -312,7 +311,7 @@ mod tests {
             .build()?;
 
         let mut file = tempfile::NamedTempFile::new()?;
-        file.write_all(&bundle.encode()?)?;
+        bundle.write_to(&mut file)?;
 
         // Dump the created bundle by `dump-bundle`.
         let res = std::process::Command::new("dump-bundle")

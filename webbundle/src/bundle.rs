@@ -86,7 +86,7 @@ impl From<&Path> for Request {
 pub const HEADER_MAGIC_BYTES: [u8; 8] = [0xf0, 0x9f, 0x8c, 0x90, 0xf0, 0x9f, 0x93, 0xa6];
 pub(crate) const VERSION_BYTES_LEN: usize = 4;
 pub(crate) const TOP_ARRAY_LEN: usize = 5;
-pub(crate) const KNOWN_SECTION_NAMES: [&str; 4] = ["index", "critical", "responses", "primary-url"];
+pub(crate) const KNOWN_SECTION_NAMES: [&str; 4] = ["index", "critical", "responses", "primary"];
 
 /// Represents the version of WebBundle.
 #[derive(Debug, PartialEq, Eq)]
@@ -217,6 +217,7 @@ impl<'a> TryFrom<&'a [u8]> for Bundle {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use headers::ContentType;
 
     #[test]
     fn request_from_path() {
@@ -228,5 +229,27 @@ mod tests {
         let path = Path::new(&path_str);
         let request: Request = path.into();
         assert_eq!(request.url(), "foo/bar");
+    }
+
+    #[test]
+    fn exchange_from() {
+        let exchange = Exchange::from(("index.html".to_string(), "hello".to_string().into_bytes()));
+        assert_eq!(exchange.request.url(), "index.html");
+        assert_eq!(exchange.response.body(), b"hello");
+        assert_eq!(
+            exchange.response.headers().typed_get::<ContentType>(),
+            Some(ContentType::html())
+        );
+    }
+
+    #[test]
+    fn exchange_from_with_content_type() {
+        let exchange = Exchange::from(("./foo/".to_string(), vec![], ContentType::html()));
+        assert_eq!(exchange.request.url(), "./foo/");
+        assert_eq!(exchange.response.body(), &[]);
+        assert_eq!(
+            exchange.response.headers().typed_get::<ContentType>(),
+            Some(ContentType::html())
+        );
     }
 }

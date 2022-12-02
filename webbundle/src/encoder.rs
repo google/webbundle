@@ -99,9 +99,6 @@ impl<W: Write + Sized> Encoder<CountWrite<W>> {
         self.write_magic()?;
         self.write_version(&bundle.version)?;
 
-        // TODO: optional primary section -> encode_sections
-        // self.write_primary_url(&bundle.primary_url)?;
-
         let sections = encode_sections(bundle)?;
 
         let section_length_cbor = encode_section_lengths(&sections)?;
@@ -113,7 +110,9 @@ impl<W: Write + Sized> Encoder<CountWrite<W>> {
         }
 
         // Write the length of bytes
-        self.se.write_unsigned_integer(self.se.count() as u64 + 8)?; // 8 is the length of u64.
+        // Spec: https://wpack-wg.github.io/bundled-responses/draft-ietf-wpack-bundled-responses.html#name-trailing-length
+        let bundle_len = self.se.count() as u64 + 8;
+        self.se.write_raw_bytes(&bundle_len.to_be_bytes())?;
         Ok(())
     }
 }
@@ -126,11 +125,11 @@ struct Section {
 fn encode_sections(bundle: &Bundle) -> Result<Vec<Section>> {
     let mut sections = Vec::new();
 
-    // primary-url
+    // primary url
     if let Some(uri) = &bundle.primary_url {
         let bytes = encode_primary_url_section(uri)?;
         sections.push(Section {
-            name: "primary-url",
+            name: "primary",
             bytes,
         });
     };
@@ -155,9 +154,9 @@ fn encode_sections(bundle: &Bundle) -> Result<Vec<Section>> {
 }
 
 fn encode_primary_url_section(url: &Uri) -> Result<Vec<u8>> {
-    let mut se = Serializer::new_vec();
+    let mut se = Serializer::new(Vec::new());
     se.write_text(url.to_string())?;
-    Ok(se.finalize())
+    Ok(se.finalize().to_vec())
 }
 
 struct ResponseLocation {
@@ -255,4 +254,37 @@ fn encode_headers(response: &Response) -> Result<Vec<u8>> {
         se.write_raw_bytes(&value)?;
     }
     Ok(se.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bundle::{Bundle, Exchange, Version};
+
+    /// This test uses an external tool, `dump-bundle`.
+    /// See https://github.com/WICG/webpackage/go/bundle
+    #[ignore]
+    #[tokio::test]
+    async fn encode_and_let_go_dump_bundle_decode_it() -> Result<()> {
+        let bundle = Bundle::builder()
+            .version(Version::VersionB2)
+            .primary_url("https://example.com/index.html".parse()?)
+            .exchange(Exchange::from((
+                "https://example.com/index.html".to_string(),
+                vec![],
+            )))
+            .build()?;
+
+        let mut file = tempfile::NamedTempFile::new()?;
+        bundle.write_to(&mut file)?;
+
+        // Dump the created bundle by `dump-bundle`.
+        let res = std::process::Command::new("dump-bundle")
+            .arg("-i")
+            .arg(file.path())
+            .output()?;
+
+        assert!(res.status.success(), "dump-bundle should read the bundle");
+        Ok(())
+    }
 }

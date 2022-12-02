@@ -211,8 +211,6 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 
         let responses_section_offset = section_offsets.last().unwrap().offset;
 
-        // dbg!(responses_section_offset);
-
         let mut requests = vec![];
         let mut primary_url: Option<PrimaryUrl> = None;
 
@@ -231,15 +229,12 @@ impl<T: AsRef<[u8]>> Decoder<T> {
             // TODO: Support ignoredSections
             match name.as_ref() {
                 "index" => {
-                    // dbg!(name);
                     requests = section_decoder.read_index(responses_section_offset)?;
                 }
                 "responses" => {
-                    // dbg!(name);
                     // Skip responses section becuase we read responses later.
                 }
-                "primary-url" => {
-                    // dbg!(name);
+                "primary" => {
                     primary_url = Some(section_decoder.read_primary_url()?);
                 }
                 _ => {
@@ -354,6 +349,36 @@ impl<T: AsRef<[u8]>> Decoder<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bundle::{Bundle, Version};
+
+    #[test]
+    fn encode_and_decode() -> Result<()> {
+        let bundle = Bundle::builder()
+            .version(Version::VersionB2)
+            .primary_url("https://example.com/index.html".parse()?)
+            .exchange(Exchange::from((
+                "https://example.com/index.html".to_string(),
+                vec![],
+            )))
+            .build()?;
+
+        let encoded = bundle.encode()?;
+
+        // Decode encoded bundle.
+        let bundle = Bundle::from_bytes(encoded)?;
+        assert_eq!(bundle.version(), &Version::VersionB2);
+        assert_eq!(
+            bundle.primary_url(),
+            &Some("https://example.com/index.html".parse()?)
+        );
+        assert_eq!(bundle.exchanges().len(), 1);
+        assert_eq!(
+            bundle.exchanges()[0].request.url(),
+            "https://example.com/index.html"
+        );
+        assert_eq!(bundle.exchanges()[0].response.body(), &[]);
+        Ok(())
+    }
 
     /// This test uses an external tool, `gen-bundle`.
     /// See https://github.com/WICG/webpackage/go/bundle
@@ -399,7 +424,6 @@ mod tests {
             bundle.exchanges[2].request.url(),
             "https://example.com/js/hello.js"
         );
-
         Ok(())
     }
 }

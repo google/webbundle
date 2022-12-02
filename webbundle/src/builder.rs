@@ -80,13 +80,31 @@ mod tests {
     #[test]
     fn build() -> Result<()> {
         let bundle = Builder::new()
-            .version(Version::Version1)
+            .version(Version::VersionB2)
             .primary_url("https://example.com".parse()?)
             .build()?;
-        assert_eq!(bundle.version, Version::Version1);
+        assert_eq!(bundle.version, Version::VersionB2);
         assert_eq!(
             bundle.primary_url,
             Some("https://example.com".parse::<Uri>()?)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn build_exchange() -> Result<()> {
+        let bundle = Builder::new()
+            .version(Version::VersionB2)
+            .primary_url("https://example.com/index.html".parse()?)
+            .exchange(Exchange::from((
+                "https://example.com/index.html".to_string(),
+                vec![],
+            )))
+            .build()?;
+        assert_eq!(bundle.exchanges.len(), 1);
+        assert_eq!(
+            bundle.exchanges[0].request.url(),
+            "https://example.com/index.html"
         );
         Ok(())
     }
