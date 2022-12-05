@@ -3,5 +3,4 @@
 /webbundle-bench/out
 **/*.rs.bk
 /webbundle/examples/*.wbn
-/webbundle/benches/bundle-large/
-/webbundle/benches/bundle-small/
+/webbundle/benches/bundle/

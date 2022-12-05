@@ -205,7 +205,7 @@ impl ExchangeBuilder {
         );
         let path = self.base_dir.join(relative_path);
 
-        let mut file = fs::File::open(&path).await?;
+        let mut file = tokio::io::BufReader::new(fs::File::open(&path).await?);
         let mut body = Vec::new();
         file.read_to_end(&mut body).await?;
         Ok(body)
@@ -220,7 +220,7 @@ impl ExchangeBuilder {
         );
         let path = self.base_dir.join(relative_path);
 
-        let mut file = std::fs::File::open(&path)?;
+        let mut file = std::io::BufReader::new(std::fs::File::open(&path)?);
         let mut body = Vec::new();
         file.read_to_end(&mut body)?;
         Ok(body)
