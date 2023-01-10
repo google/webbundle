@@ -128,7 +128,7 @@ impl Module {
             None => PathBuf::from(&option.out),
         };
 
-        std::fs::create_dir_all(&output_dir)?;
+        std::fs::create_dir_all(output_dir)?;
 
         let file = PathBuf::from(&option.out).join(self.full_path());
         std::fs::write(file, t.render().unwrap())?;

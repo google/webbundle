@@ -285,13 +285,13 @@ async fn main() -> Result<()> {
         }
         Command::List { file, format } => {
             let mut buf = Vec::new();
-            File::open(&file)?.read_to_end(&mut buf)?;
+            File::open(file)?.read_to_end(&mut buf)?;
             let bundle = Bundle::from_bytes(buf)?;
             list(&bundle, format);
         }
         Command::Extract { file } => {
             let mut buf = Vec::new();
-            File::open(&file)?.read_to_end(&mut buf)?;
+            File::open(file)?.read_to_end(&mut buf)?;
             let bundle = Bundle::from_bytes(buf)?;
             extract(&bundle)?;
         }
