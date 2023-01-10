@@ -133,7 +133,7 @@ impl ExchangeBuilder {
                 let relative_url = pathdiff::diff_paths(dir, &self.base_dir).unwrap();
                 let relative_path = pathdiff::diff_paths(entry.path(), &self.base_dir).unwrap();
                 // for <dir> -> Serves the contents of <dir>/index.html
-                self = self.exchange_sync(&relative_url, &relative_path)?;
+                self = self.exchange_sync(relative_url, &relative_path)?;
 
                 // for <dir>/index.html -> redirect to "./"
                 self = self.exchange_redirect(&relative_path, "./")?;
@@ -220,7 +220,7 @@ impl ExchangeBuilder {
         );
         let path = self.base_dir.join(relative_path);
 
-        let mut file = std::io::BufReader::new(std::fs::File::open(&path)?);
+        let mut file = std::io::BufReader::new(std::fs::File::open(path)?);
         let mut body = Vec::new();
         file.read_to_end(&mut body)?;
         Ok(body)
