@@ -84,7 +84,7 @@ fn list(bundle: &Bundle, format: Option<Format>) {
 
 fn list_plain(bundle: &Bundle) {
     if let Some(primary_url) = bundle.primary_url() {
-        println!("primary_url: {}", primary_url);
+        println!("primary_url: {primary_url}");
     }
     for exchange in bundle.exchanges() {
         let request = &exchange.request;
@@ -152,7 +152,7 @@ fn list_json(bundle: &Bundle) {
 }
 
 fn list_debug(bundle: &Bundle) {
-    println!("{:#?}", bundle);
+    println!("{bundle:#?}");
 }
 
 fn make_url_path_relative(path: impl AsRef<Path>) -> PathBuf {
