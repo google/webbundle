@@ -184,10 +184,7 @@ async fn directory_list_files(
             p.file_name().unwrap().to_str().unwrap(),
             if is_dir(&p).await { "/" } else { "" }
         );
-        write!(
-            contents,
-            "<li><a href={link}>{link}</a></li>",
-        )?;
+        write!(contents, "<li><a href={link}>{link}</a></li>",)?;
     }
 
     let inline_style = r#"
@@ -219,5 +216,6 @@ body {
 <hr>
 </body>
 </html>
-"#))
+"#
+    ))
 }
