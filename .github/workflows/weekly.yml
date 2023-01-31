@@ -9,7 +9,7 @@ jobs:
         rust: [stable]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: rustup update ${{ matrix.rust }}
       - run: rustup default ${{ matrix.rust }}
       - run: rustup component add rustfmt
