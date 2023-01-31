@@ -41,7 +41,7 @@ async fn main() {
                 .handle_error(|error: std::io::Error| async move {
                     (
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", error),
+                        format!("Unhandled internal error: {error}"),
                     )
                 })
                 .layer(middleware::from_fn(serve_dir_extra)),
@@ -56,7 +56,7 @@ async fn main() {
         },
         args.port,
     ));
-    println!("Listening on http://{}/", addr);
+    println!("Listening on http://{addr}/");
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
@@ -69,7 +69,7 @@ async fn webbundle_serve(req: Request<Body>) -> Result<Response<BoxBody>, (Statu
         Ok(WebBundleServeResponse::NotFound) => Err((StatusCode::NOT_FOUND, "".to_string())),
         Err(err) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Unhandled internal error {}", err),
+            format!("Unhandled internal error {err}"),
         )),
     }
 }
@@ -132,7 +132,7 @@ async fn serve_dir_extra(
     serve_dir_extra_internal(req, next).await.map_err(|err| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Unhandled internal error {}", err),
+            format!("Unhandled internal error {err}"),
         )
     })
 }
@@ -179,7 +179,7 @@ async fn directory_list_files(
     }
     files.sort();
     for p in files {
-        let link_name = format!(
+        let link = format!(
             "{}{}",
             p.file_name().unwrap().to_str().unwrap(),
             if is_dir(&p).await { "/" } else { "" }
@@ -187,7 +187,6 @@ async fn directory_list_files(
         write!(
             contents,
             "<li><a href={link}>{link}</a></li>",
-            link = link_name
         )?;
     }
 
@@ -205,7 +204,7 @@ body {
         r#"
 <html>
 <head><meta charset="utf-8"/>
-<title>{title}</title>
+<title>{display_name}</title>
 <link rel=stylesheet href="https://cdn.jsdelivr.net/npm/github-markdown-css">
 <style>
 {inline_style}
@@ -220,10 +219,5 @@ body {
 <hr>
 </body>
 </html>
-"#,
-        title = display_name,
-        inline_style = inline_style,
-        display_name = display_name,
-        contents = contents
-    ))
+"#))
 }
